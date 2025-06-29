@@ -1,0 +1,24 @@
+{
+  "name": "Noor App",
+  "short_name": "myNoor",
+  "description": "Noor App, your AI companion, rooted in Islamic values. Users provide age and location to personalize the chat experience. Features sponsorship opportunities.",
+  "icons": [
+    {
+      "src": "/assets/icons/icon-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/icons/icon-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "scope": "/",
+  "theme_color": "#007aff",
+  "background_color": "#f2f2f7"
+}
