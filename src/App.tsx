@@ -28,21 +28,20 @@ import { isLocationMatch } from './utils/locationUtils';
 import { calculateEndDate, isSponsorshipActive, formatDateForDisplay } from './utils/dateUtils';
 import { PrayerTimesProvider } from './contexts/PrayerTimesContext';
 
-import UserDataForm from './components/forms/UserDataForm';
-import ChatInterface from './components/interfaces/ChatInterface';
-import NavigationBar from './components/navigation/NavigationBar';
-import SponsorApplicationForm from './components/forms/SponsorApplicationForm';
-import AdminDashboard from './components/admin/AdminDashboard';
-import AdminLogin from './components/admin/AdminLogin';
-import ChatListSidebar from './components/navigation/ChatListSidebar';
-import LanguageSelectionModal from './components/modals/LanguageSelectionModal';
-import HikmahGallery from './components/galleries/HikmahGallery';
+import UserDataForm from './components/UserDataForm';
+import ChatInterface from './components/ChatInterface';
+import NavigationBar, { AppView } from './components/NavigationBar';
+import SponsorApplicationForm from './components/SponsorApplicationForm';
+import AdminDashboard from './components/AdminDashboard';
+import AdminLogin from './components/AdminLogin';
+import ChatListSidebar from './components/ChatListSidebar';
+import LanguageSelectionModal from './components/LanguageSelectionModal';
+import HikmahGallery from './components/HikmahGallery';
 // import InteractiveActivityModal from './components/InteractiveActivityModal';
 // import PrayerReminderPopup from './components/PrayerReminderPopup';
-import SplashScreen from './components/screens/SplashScreen';
+import SplashScreen from './components/SplashScreen';
 
 export type Theme = 'light' | 'dark' | 'auto';
-export type AppView = 'chat' | 'hikmah' | 'sponsor' | 'admin' | 'settings';
 
 // Helper to safely save to localStorage and handle quota errors
 const safeSaveToLocalStorage = (key: string, data: any): boolean => {
@@ -79,10 +78,6 @@ const safeLoadFromLocalStorage = <T,>(key: string, fallback: T): T => {
 };
 
 const DEFAULT_BEHAVIORS: BehaviorOverrides = {
-    autoSave: true,
-    notifications: true,
-    animations: true,
-    soundEffects: true,
     pointsPerAiMessage: POINTS_PER_AI_MESSAGE,
     pointsPerActivityCompletedBase: POINTS_PER_ACTIVITY_COMPLETED_BASE,
     pointsPerQuizCorrectAnswer: POINTS_PER_QUIZ_CORRECT_ANSWER,
@@ -204,723 +199,763 @@ const AppContent: React.FC<AppContentProps> = ({ userData, setUserData, onUserDa
         const newUnlocked = [...new Set([...prev, ...defaultIds])];
         safeSaveToLocalStorage(UNLOCKED_CARD_BACKGROUNDS_KEY, newUnlocked);
         return newUnlocked;
+    });
+    setUnlockedActivityBackgroundIds(prev => {
+        const defaultIds = INITIAL_CARD_BACKGROUNDS.filter(bg => bg.cost === 0).map(bg => bg.id);
+        const newUnlocked = [...new Set([...prev, ...defaultIds])];
+        safeSaveToLocalStorage(UNLOCKED_ACTIVITY_BACKGROUNDS_KEY, newUnlocked);
+        return newUnlocked;
+    });
+  }, []);
+  
+  // Save data to local storage whenever it changes
+  useEffect(() => { safeSaveToLocalStorage(MANAGED_URL_CONFIG_KEY, managedUrlConfig); }, [managedUrlConfig]);
+  useEffect(() => { if (khitmahProgress) safeSaveToLocalStorage(KHITMAH_PROGRESS_KEY, khitmahProgress); }, [khitmahProgress]);
+  useEffect(() => { if (hadithProgress) safeSaveToLocalStorage(HADITH_PROGRESS_KEY, hadithProgress); }, [hadithProgress]);
+  useEffect(() => { safeSaveToLocalStorage(BRANDING_ASSETS_KEY, brandingAssets); }, [brandingAssets]);
+  useEffect(() => { const root = window.document.documentElement; const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const applyTheme = (ct: Theme) => { if (ct === 'dark') root.classList.add('dark'); else if (ct === 'light') root.classList.remove('dark'); else { if (mediaQuery.matches) root.classList.add('dark'); else root.classList.remove('dark'); }};
+    applyTheme(theme); localStorage.setItem(THEME_KEY, theme);
+    const hS = (e: MediaQueryListEvent) => { if (theme === 'auto') { if (e.matches) root.classList.add('dark'); else root.classList.remove('dark'); }};
+    mediaQuery.addEventListener('change', hS); return () => mediaQuery.removeEventListener('change', hS);
+  }, [theme]);
+
+  useEffect(() => { safeSaveToLocalStorage(APPROVED_SPONSORS_KEY, approvedSponsors); }, [approvedSponsors]);
+  useEffect(() => { if (userData && chatSessions.length > 0) safeSaveToLocalStorage(CHAT_SESSIONS_KEY, chatSessions); }, [chatSessions, userData]);
+  useEffect(() => { if (currentChatSessionId) localStorage.setItem(CURRENT_CHAT_SESSION_ID_KEY, currentChatSessionId); }, [currentChatSessionId]);
+  useEffect(() => { safeSaveToLocalStorage(UNLOCKED_WISDOM_CARDS_KEY, unlockedWisdomCards); }, [unlockedWisdomCards]);
+  useEffect(() => { safeSaveToLocalStorage(UNLOCKED_CARD_BACKGROUNDS_KEY, unlockedCardBackgroundIds); }, [unlockedCardBackgroundIds]);
+  useEffect(() => { safeSaveToLocalStorage(UNLOCKED_ACHIEVEMENT_CARDS_KEY, unlockedAchievementCards); }, [unlockedAchievementCards]);
+  useEffect(() => { safeSaveToLocalStorage(UNLOCKED_ACTIVITY_BACKGROUNDS_KEY, unlockedActivityBackgroundIds); }, [unlockedActivityBackgroundIds]);
+  useEffect(() => { safeSaveToLocalStorage(UNLOCKED_REFLECTION_CARDS_KEY, unlockedReflectionCards); }, [unlockedReflectionCards]);
+  useEffect(() => { safeSaveToLocalStorage(BOOKMARKED_HADITHS_KEY, bookmarkedHadiths); }, [bookmarkedHadiths]);
+  useEffect(() => { safeSaveToLocalStorage(BOOKMARKED_AYAH_KEY, bookmarkedAyahs); }, [bookmarkedAyahs]);
+  useEffect(() => { safeSaveToLocalStorage(UNLOCKED_PACKS_KEY, unlockedPackIds); }, [unlockedPackIds]);
+
+  const updateChatSession = useCallback((sessionId: string, updateFn: (session: ChatSession) => ChatSession) => {
+    setChatSessions(prevSessions => prevSessions.map(s => s.id === sessionId ? updateFn(s) : s));
+  }, []);
+  
+  const updateMessageInSession = useCallback((sessionId: string, messageId: string, updateFn: (message: ChatMessage) => ChatMessage) => {
+    updateChatSession(sessionId, session => ({
+      ...session,
+      messages: session.messages.map(msg => msg.id === messageId ? updateFn(msg) : msg),
+      lastActivityAt: new Date(),
+    }));
+  }, [updateChatSession]);
+
+  const addHikmahPoints = useCallback((points: number) => {
+      setUserData(prevUserData => {
+          if (!prevUserData) return null;
+          const newTotal = (prevUserData.hikmahPoints || 0) + points;
+          const updatedUserData = { ...prevUserData, hikmahPoints: newTotal };
+          safeSaveToLocalStorage(USER_DATA_KEY, updatedUserData);
+          return updatedUserData;
       });
+  }, [setUserData]);
+
+  const addWisdomCardToGallery = useCallback((message: ChatMessage, sessionId: string) => {
+    if (message.shareableTakeaway && message.id && sessionId) {
+        const newWisdomCard: UnlockedWisdomCard = {
+            id: `wisdom-${message.id}-${Date.now()}`,
+            originalMessageId: message.id,
+            takeaway: message.shareableTakeaway,
+            timestamp: message.timestamp || new Date(),
+            chatSessionId: sessionId,
+        };
+        setUnlockedWisdomCards(prev => [newWisdomCard, ...prev]);
+    }
+  }, []);
+  
+  const addAchievementCard = useCallback((card: UnlockedAchievementCard) => {
+    setUnlockedAchievementCards(prev => [card, ...prev]);
   }, []);
 
-  // Load chat sessions from localStorage
-  useEffect(() => {
-    const sessions = safeLoadFromLocalStorage<ChatSession[]>(CHAT_SESSIONS_KEY, []);
-    setChatSessions(sessions);
+  const selectSponsorForMessage = useCallback((): ApprovedSponsor | null => {
+    if (!userData) return null;
+
+    const tierWeights: Record<SponsorTier, number> = { 'Gold': 3, 'Silver': 2, 'Bronze': 1 };
     
-    const currentId = safeLoadFromLocalStorage<string | null>(CURRENT_CHAT_SESSION_ID_KEY, null);
-    if (currentId && sessions.find(s => s.id === currentId)) {
-      setCurrentChatSessionId(currentId);
-    } else if (sessions.length > 0) {
-      const mostRecent = sessions.sort((a, b) => new Date(b.lastActivityAt).getTime() - new Date(a.lastActivityAt).getTime())[0];
-      setCurrentChatSessionId(mostRecent.id);
-      safeSaveToLocalStorage(CURRENT_CHAT_SESSION_ID_KEY, mostRecent.id);
-    }
-  }, []);
+    const eligibleSponsors = approvedSponsors.filter(p => isSponsorshipActive(p.endDate) && isLocationMatch(userData.location, p));
 
-  // Check URL parameters for admin access
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('admin') === 'true') {
-      setCurrentView('adminLogin');
-    }
-  }, []);
+    if (eligibleSponsors.length === 0) return null;
 
-  // Check for admin authentication
-  useEffect(() => {
-    const adminAuth = localStorage.getItem(ADMIN_AUTH_KEY);
-    if (adminAuth === 'true') {
-      setIsAdminAuthenticated(true);
-    }
-  }, []);
-
-  // Initialize app after user data is available
-  useEffect(() => {
-    if (userData && !isInitializingChat) {
-      const timer = setTimeout(() => {
-        setIsAppInitialized(true);
-      }, 2000); // Show splash for 2 seconds
-      return () => clearTimeout(timer);
-    }
-  }, [userData, isInitializingChat]);
-
-  // Auto-switch to chat view when user data is available and app is initialized
-  useEffect(() => {
-    if (userData && isAppInitialized && currentView === 'userDataForm') {
-      setCurrentView('chat');
-    }
-  }, [userData, isAppInitialized, currentView]);
-
-  const handleSendMessage = useCallback(async (content: string) => {
-    if (!userData || !currentChatSessionId) return;
-
-    const userMessage: ChatMessage = {
-      id: Date.now().toString(),
-      content,
-      sender: MessageSender.User,
-      timestamp: new Date().toISOString(),
-    };
-
-    // Update the current session with the new user message
-    setChatSessions(prev => {
-      const updated = prev.map(session => 
-        session.id === currentChatSessionId 
-          ? { 
-              ...session, 
-              messages: [...session.messages, userMessage],
-              lastActivityAt: new Date().toISOString()
-            }
-          : session
-      );
-      safeSaveToLocalStorage(CHAT_SESSIONS_KEY, updated);
-      return updated;
+    const weightedList: ApprovedSponsor[] = [];
+    eligibleSponsors.forEach(sponsor => {
+      const weight = tierWeights[sponsor.tier] || 1;
+      for (let i = 0; i < weight; i++) {
+        weightedList.push(sponsor);
+      }
     });
 
+    if (weightedList.length === 0) return null;
+    
+    const randomIndex = Math.floor(Math.random() * weightedList.length);
+    return weightedList[randomIndex];
+  }, [approvedSponsors, userData]);
+
+  const processAndDisplayAIResponse = useCallback(async (prompt: string, sessionId: string) => {
+    if (!userData) return;
+  
     setIsLoading(true);
     setError(null);
-
+  
+    const aiMsgId = 'ai-' + Date.now();
+    const placeholderMessage: ChatMessage = { id: aiMsgId, text: '', sender: MessageSender.AI, timestamp: new Date() };
+    updateChatSession(sessionId, s => ({ ...s, messages: [...s.messages, placeholderMessage] }));
+  
+    const histForAI = chatSessions.find(s => s.id === sessionId)?.messages.filter(m => m.id !== aiMsgId) || [];
+  
     try {
-      const currentSession = chatSessions.find(s => s.id === currentChatSessionId);
-      const conversationHistory = currentSession ? [...currentSession.messages, userMessage] : [userMessage];
-      
-      const response = await geminiService.sendMessage(content, userData, conversationHistory, customSystemPrompt);
-      
-      const aiMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        content: response,
-        sender: MessageSender.AI,
-        timestamp: new Date().toISOString(),
-      };
-
-      // Update session with AI response
-      setChatSessions(prev => {
-        const updated = prev.map(session => 
-          session.id === currentChatSessionId 
-            ? { 
-                ...session, 
-                messages: [...session.messages, aiMessage],
-                lastActivityAt: new Date().toISOString()
-              }
-            : session
-        );
-        safeSaveToLocalStorage(CHAT_SESSIONS_KEY, updated);
-        return updated;
-      });
-
-      // Award points for AI interaction
-      const pointsToAdd = behaviorOverrides.pointsPerAiMessage;
-      const updatedUserData = { ...userData, hikmahPoints: userData.hikmahPoints + pointsToAdd };
-      setUserData(updatedUserData);
-      safeSaveToLocalStorage(USER_DATA_KEY, updatedUserData);
-
-      // Extract and handle special content
-      const specialContent = extractSpecialContent(response);
-      await handleSpecialContent(specialContent);
-
-    } catch (error: any) {
-      console.error('Error sending message:', error);
-      if (error.message?.includes('rate limit') || error.message?.includes('429')) {
+      const rawRes = await geminiService.sendMessageToAI(prompt, histForAI, userData, customSystemPrompt);
+      if (rawRes.includes("I'm currently experiencing high demand")) {
         setIsRateLimited(true);
-        setError('Rate limit reached. Please wait a moment before sending another message.');
-        setTimeout(() => setIsRateLimited(false), 60000); // Reset after 1 minute
-      } else {
-        setError('Failed to send message. Please try again.');
+        setTimeout(() => setIsRateLimited(false), 60000);
       }
+      const { displayText, ...rest } = extractSpecialContent(rawRes);
+      
+      const fullMessage: ChatMessage = { 
+        ...placeholderMessage, 
+        text: displayText, 
+        ...rest,
+      };
+      
+      if (displayText && !displayText.toLowerCase().includes('error')) {
+        addHikmahPoints(behaviorOverrides.pointsPerAiMessage);
+        
+        updateChatSession(sessionId, session => {
+            const totalAiMessages = (session.sessionState.totalAiMessagesSentInSession || 0) + 1;
+            const shouldAttachSponsor = totalAiMessages > 0 && totalAiMessages % 3 === 0;
+            let finalMessage = { ...fullMessage };
+
+            if(shouldAttachSponsor) {
+                const sponsor = selectSponsorForMessage();
+                if (sponsor) {
+                    finalMessage.sponsorAttribution = {
+                      sponsorId: sponsor.id, sponsorName: sponsor.companyName, tier: sponsor.tier,
+                      link: { linkType: sponsor.linkType, linkUrl: sponsor.linkUrl },
+                    };
+                }
+            }
+
+            let newMessages = session.messages.map(msg => msg.id === aiMsgId ? finalMessage : msg);
+            if (rest.shareableTakeaway) {
+                addWisdomCardToGallery(finalMessage, session.id);
+            }
+
+            return {
+                ...session,
+                messages: newMessages,
+                sessionState: {
+                    ...session.sessionState,
+                    totalAiMessagesSentInSession: totalAiMessages
+                }
+            };
+        });
+
+      } else {
+         updateMessageInSession(sessionId, aiMsgId, () => fullMessage);
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Unknown err.";
+      updateMessageInSession(sessionId, aiMsgId, m => ({ ...m, text: `Error: ${msg}` }));
+      setError(`Fail get AI response: ${msg}`);
     } finally {
       setIsLoading(false);
     }
-  }, [userData, currentChatSessionId, chatSessions, customSystemPrompt, behaviorOverrides.pointsPerAiMessage]);
+  }, [userData, chatSessions, addHikmahPoints, addWisdomCardToGallery, updateChatSession, updateMessageInSession, selectSponsorForMessage, customSystemPrompt, behaviorOverrides]);
 
-  const handleSpecialContent = async (specialContent: any) => {
-    if (!userData) return;
+  const triggerInitialAIGreeting = useCallback(async (sessionId: string, cUD: UserData) => {
+    const initPrompt = `[SYSTEM_COMMAND] This is a one-time instruction. Generate your initial greeting message as Noor App, your AI companion. Acknowledge the user's age and preferred language context. After this greeting, proceed with the normal conversation. Do not repeat this greeting in subsequent responses.`; 
+    await processAndDisplayAIResponse(initPrompt, sessionId);
+  }, [processAndDisplayAIResponse]);
 
-    // Handle wisdom cards
-    if (specialContent.wisdomCards && specialContent.wisdomCards.length > 0) {
-      const newCards = specialContent.wisdomCards.map((card: any) => ({
-        ...card,
-        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-        unlockedAt: new Date().toISOString(),
-      }));
-      
-      setUnlockedWisdomCards(prev => {
-        const updated = [...prev, ...newCards];
-        safeSaveToLocalStorage(UNLOCKED_WISDOM_CARDS_KEY, updated);
-        return updated;
-      });
+  const handleStartNewChat = useCallback(async (cUD: UserData, makeActive: boolean = true): Promise<string> => {
+    setIsLoading(true); setError(null); const newSId = 'chat-' + Date.now(); const now = new Date();
+    const newS: ChatSession = { id: newSId, name: `Chat - ${formatDateForDisplay(now.toISOString(), true)}`, createdAt: now, lastActivityAt: now, messages: [], sessionState: { totalAiMessagesSentInSession: 0, lastDisplayedSponsorIndex: -1 }};
+    setChatSessions(prev => [newS, ...prev]);
+    try { await geminiService.initializeChat(); if (makeActive) { setCurrentChatSessionId(newSId); await triggerInitialAIGreeting(newSId, cUD); }} 
+    catch (initError) { const msg = initError instanceof Error ? initError.message : String(initError); setError(`Fail new chat: ${msg}`); throw new Error(`Fail new chat: ${msg}`); }
+    if (!makeActive) setIsLoading(false); return newSId;
+  }, [triggerInitialAIGreeting]);
+
+  useEffect(() => {
+    const storedAuth = localStorage.getItem(ADMIN_AUTH_KEY) === 'true';
+    if (storedAuth) setIsAdminAuthenticated(true);
+    const adminParamPresent = new URLSearchParams(window.location.search).get('admin') === 'true';
+
+    if (adminParamPresent) {
+      setCurrentView(storedAuth ? 'adminDashboard' : 'adminLogin');
+      setIsAppInitialized(true);
+    } else if (userData) {
+        if (!isAppInitialized) {
+            geminiService.initializeChat().then(() => {
+                const storedSessions = safeLoadFromLocalStorage<any[] | null>(CHAT_SESSIONS_KEY, null);
+                let loadedSessions: ChatSession[] = [];
+                if(storedSessions) {
+                    loadedSessions = storedSessions.map((s: any) => ({ 
+                        ...s, 
+                        createdAt: new Date(s.createdAt), 
+                        lastActivityAt: new Date(s.lastActivityAt), 
+                        messages: s.messages.map((m: ChatMessage) => ({ ...m, timestamp: new Date(m.timestamp) })) 
+                    }));
+                }
+                
+                if (loadedSessions.length > 0) {
+                    setChatSessions(loadedSessions);
+                    const lastSessionId = localStorage.getItem(CURRENT_CHAT_SESSION_ID_KEY);
+                    const validLastSession = loadedSessions.find(s => s.id === lastSessionId);
+                    setCurrentChatSessionId(validLastSession ? validLastSession.id : loadedSessions.sort((a,b) => new Date(b.lastActivityAt).getTime() - new Date(a.lastActivityAt).getTime())[0].id);
+                } else {
+                    handleStartNewChat(userData, true);
+                }
+                setCurrentView('chat');
+                setIsAppInitialized(true);
+            }).catch(initError => {
+                console.error("Chat init failed on load:", initError);
+                setError(`Could not initialize chat session: ${initError instanceof Error ? initError.message : String(initError)}.`);
+            });
+        }
+    } else {
+        setCurrentView('userDataForm');
+        setIsAppInitialized(false);
     }
-
-    // Handle achievement cards
-    if (specialContent.achievementCards && specialContent.achievementCards.length > 0) {
-      const newAchievements = specialContent.achievementCards.map((card: any) => ({
-        ...card,
-        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-        unlockedAt: new Date().toISOString(),
-      }));
-      
-      setUnlockedAchievementCards(prev => {
-        const updated = [...prev, ...newAchievements];
-        safeSaveToLocalStorage(UNLOCKED_ACHIEVEMENT_CARDS_KEY, updated);
-        return updated;
-      });
-    }
-
-    // Handle reflection cards
-    if (specialContent.reflectionCards && specialContent.reflectionCards.length > 0) {
-      const newReflections = specialContent.reflectionCards.map((card: any) => ({
-        ...card,
-        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-        unlockedAt: new Date().toISOString(),
-      }));
-      
-      setUnlockedReflectionCards(prev => {
-        const updated = [...prev, ...newReflections];
-        safeSaveToLocalStorage(UNLOCKED_REFLECTION_CARDS_KEY, updated);
-        return updated;
-      });
-    }
-  };
-
+  }, [userData, handleStartNewChat, isAppInitialized, isAdminAuthenticated]);
+  
   const requestAiFollowUp = useCallback(async (prompt: string) => {
+    if (!currentChatSessionId) return;
+    await processAndDisplayAIResponse(prompt, currentChatSessionId);
+  }, [currentChatSessionId, processAndDisplayAIResponse]);
+  
+  const handleSendMessage = async (text: string) => {
     if (!userData || !currentChatSessionId) return;
+  
+    const currentSession = chatSessions.find(s => s.id === currentChatSessionId);
+    const isFirstUserMessage = currentSession ? currentSession.messages.filter(msg => msg.sender === MessageSender.USER).length === 0 : false;
+  
+    const userMsg: ChatMessage = { id: 'user-' + Date.now(), text, sender: MessageSender.USER, timestamp: new Date() };
+  
+    updateChatSession(currentChatSessionId, s => {
+      const newName = isFirstUserMessage
+        ? (text.length > 40 ? text.substring(0, 37) + '...' : text)
+        : s.name;
+  
+      return { ...s, name: newName, messages: [...s.messages, userMsg], lastActivityAt: new Date() };
+    });
+  
+    await processAndDisplayAIResponse(text, currentChatSessionId);
+  };
+  
+  const handleStartActivity = useCallback(async (messageIdToUpdate: string | null, activitySuggestion: InteractiveActivitySuggestion) => {
+    if (!userData || !currentChatSessionId || !messageIdToUpdate) return;
+    setError(null);
 
-    setIsLoading(true);
-    try {
-      const currentSession = chatSessions.find(s => s.id === currentChatSessionId);
-      const conversationHistory = currentSession ? currentSession.messages : [];
-      
-      const response = await geminiService.sendMessage(prompt, userData, conversationHistory, customSystemPrompt);
-      
-      const aiMessage: ChatMessage = {
-        id: Date.now().toString(),
-        content: response,
-        sender: MessageSender.AI,
-        timestamp: new Date().toISOString(),
-      };
+    const baseUpdateFn = (msg: ChatMessage) => ({ ...msg, activitySuggestion: undefined });
 
-      setChatSessions(prev => {
-        const updated = prev.map(session => 
-          session.id === currentChatSessionId 
-            ? { 
-                ...session, 
-                messages: [...session.messages, aiMessage],
-                lastActivityAt: new Date().toISOString()
-              }
-            : session
-        );
-        safeSaveToLocalStorage(CHAT_SESSIONS_KEY, updated);
-        return updated;
-      });
-
-      const specialContent = extractSpecialContent(response);
-      await handleSpecialContent(specialContent);
-
-    } catch (error) {
-      console.error('Error in AI follow-up:', error);
-    } finally {
-      setIsLoading(false);
+    if (activitySuggestion.type === 'quiz') {
+        updateMessageInSession(currentChatSessionId, messageIdToUpdate, msg => ({ ...baseUpdateFn(msg), inlineQuizState: { status: 'loading', quizData: null, currentQuestionIndex: 0, selectedAnswers: {} } }));
+        try {
+            const quizContent = await geminiService.generateActivityContent('quiz', activitySuggestion.topic, userData) as QuizData;
+            updateMessageInSession(currentChatSessionId, messageIdToUpdate, msg => ({ ...msg, inlineQuizState: { ...(msg.inlineQuizState as InlineQuizState), status: 'playing', quizData: quizContent } }));
+        } catch (e) {
+            const errorMsg = e instanceof Error ? e.message : "Failed to load quiz.";
+            updateMessageInSession(currentChatSessionId, messageIdToUpdate, msg => ({ ...msg, inlineQuizState: { ...(msg.inlineQuizState as InlineQuizState), status: 'error', errorMsg } }));
+        }
+    } else if (activitySuggestion.type === 'word_search') {
+        updateMessageInSession(currentChatSessionId, messageIdToUpdate, msg => ({ ...baseUpdateFn(msg), inlineWordSearchState: { status: 'loading', wordSearchData: null, foundWords: [], currentSelection: [], startTime: null, elapsedTime: 0 } }));
+        try {
+            const wordSearchContent = await geminiService.generateActivityContent('word_search', activitySuggestion.topic, userData) as WordSearchData;
+            updateMessageInSession(currentChatSessionId, messageIdToUpdate, msg => ({ ...msg, inlineWordSearchState: { ...(msg.inlineWordSearchState as InlineWordSearchState), status: 'playing', wordSearchData: wordSearchContent, startTime: Date.now() } }));
+        } catch (e) {
+            const errorMsg = e instanceof Error ? e.message : "Failed to load word search.";
+            updateMessageInSession(currentChatSessionId, messageIdToUpdate, msg => ({ ...msg, inlineWordSearchState: { ...(msg.inlineWordSearchState as InlineWordSearchState), status: 'error', errorMsg } }));
+        }
+    } else if (activitySuggestion.type === 'khitmah_reader') {
+        const startPage = khitmahProgress?.currentPageNumber || 1;
+        const initialState: InlineKhitmahReaderState = { status: 'loading', pageData: null, bookmarkedVerseKeys: [] };
+        updateMessageInSession(currentChatSessionId, messageIdToUpdate, msg => ({ ...baseUpdateFn(msg), inlineKhitmahReaderState: initialState }));
+        try {
+            const pageData = await contentService.fetchQuranPage(startPage);
+            const bookmarkedKeysForPage = bookmarkedAyahs.filter(b => b.pageNumber === startPage).map(b => b.verse_key);
+            updateMessageInSession(currentChatSessionId, messageIdToUpdate, msg => ({
+                ...msg, inlineKhitmahReaderState: {
+                    status: 'ready',
+                    pageData: { pageNumber: startPage, verses: pageData },
+                    bookmarkedVerseKeys: bookmarkedKeysForPage
+                }
+            }));
+        } catch(e) {
+             const errorMsg = e instanceof Error ? e.message : "Failed to load Quran page.";
+            updateMessageInSession(currentChatSessionId, messageIdToUpdate, msg => ({ ...msg, inlineKhitmahReaderState: { status: 'error', pageData: null, bookmarkedVerseKeys: [], errorMsg } }));
+        }
+    } else if (activitySuggestion.type === 'hadith_explorer' && activitySuggestion.topic) {
+        const initialState: InlineHadithExplorerState = { status: 'loading', bookData: null, currentPageIndex: 0, bookmarkedPageIndexes: [] };
+        updateMessageInSession(currentChatSessionId, messageIdToUpdate, msg => ({ ...baseUpdateFn(msg), inlineHadithExplorerState: initialState }));
+        try {
+            const bookContent = await geminiService.generateActivityContent('hadith_explorer', activitySuggestion.topic, userData) as FlipBookData;
+            updateMessageInSession(currentChatSessionId, messageIdToUpdate, msg => ({ ...msg, inlineHadithExplorerState: { ...initialState, status: 'ready', bookData: bookContent } }));
+        } catch(e) {
+            const errorMsg = e instanceof Error ? e.message : "Failed to generate the Hadith collection.";
+            updateMessageInSession(currentChatSessionId, messageIdToUpdate, msg => ({ ...msg, inlineHadithExplorerState: { ...initialState, status: 'error', errorMsg } }));
+        }
+    } else if (activitySuggestion.type === 'flip_book_reader' && activitySuggestion.topic) {
+        const initialState: InlineFlipBookState = { status: 'loading', bookData: null, currentPageIndex: 0 };
+        updateMessageInSession(currentChatSessionId, messageIdToUpdate, msg => ({ ...baseUpdateFn(msg), inlineFlipBookState: initialState }));
+        try {
+            const bookContent = await geminiService.generateActivityContent('flip_book_reader', activitySuggestion.topic, userData) as FlipBookData;
+            updateMessageInSession(currentChatSessionId, messageIdToUpdate, msg => ({ ...msg, inlineFlipBookState: { ...initialState, status: 'ready', bookData: bookContent } }));
+        } catch(e) {
+            const errorMsg = e instanceof Error ? e.message : "Failed to generate the book.";
+            updateMessageInSession(currentChatSessionId, messageIdToUpdate, msg => ({ ...msg, inlineFlipBookState: { ...initialState, status: 'error', errorMsg } }));
+        }
     }
-  }, [userData, currentChatSessionId, chatSessions, customSystemPrompt]);
+  }, [userData, currentChatSessionId, updateMessageInSession, khitmahProgress, bookmarkedAyahs]);
+  
+  const handleInlineQuizInteraction = useCallback((messageId: string, action: 'next' | 'prev' | 'select_option' | 'submit', payload?: { optionIndex?: number }) => {
+    if (!currentChatSessionId) return;
+  
+    if (action === 'submit') {
+      updateMessageInSession(currentChatSessionId, messageId, msg => ({ ...msg, inlineQuizState: { ...msg.inlineQuizState!, status: 'submitting' } }));
+  
+      setTimeout(() => {
+        let completedMessage: ChatMessage | null = null;
+        setChatSessions(prevSessions => {
+            return prevSessions.map(session => {
+                if (session.id === currentChatSessionId) {
+                    const updatedMessages = session.messages.map(msg => {
+                        if (msg.id === messageId) {
+                            if (!msg.inlineQuizState?.quizData) return msg;
+                            let score = 0;
+                            const totalQuestions = msg.inlineQuizState.quizData.questions.length;
+                            msg.inlineQuizState.quizData.questions.forEach((q, index) => {
+                                if (msg.inlineQuizState!.selectedAnswers[index] === q.correctAnswerIndex) {
+                                    score++;
+                                }
+                            });
 
-  const handleStartNewChat = useCallback((userData: UserData) => {
-    const newSession: ChatSession = {
-      id: Date.now().toString(),
-      name: `Chat ${chatSessions.length + 1}`,
-      messages: [],
-      createdAt: new Date().toISOString(),
-      lastActivityAt: new Date().toISOString(),
-    };
-
-    setChatSessions(prev => {
-      const updated = [...prev, newSession];
-      safeSaveToLocalStorage(CHAT_SESSIONS_KEY, updated);
-      return updated;
-    });
-
-    setCurrentChatSessionId(newSession.id);
-    safeSaveToLocalStorage(CURRENT_CHAT_SESSION_ID_KEY, newSession.id);
-    setCurrentView('chat');
-  }, [chatSessions.length]);
-
-  const handleSwitchSession = useCallback((sessionId: string) => {
-    setCurrentChatSessionId(sessionId);
-    safeSaveToLocalStorage(CURRENT_CHAT_SESSION_ID_KEY, sessionId);
-    setCurrentView('chat');
-  }, []);
-
-  const handleRenameSession = useCallback((id: string, newName: string) => {
-    setChatSessions(prev => {
-      const updated = prev.map(session => 
-        session.id === id ? { ...session, name: newName } : session
-      );
-      safeSaveToLocalStorage(CHAT_SESSIONS_KEY, updated);
-      return updated;
-    });
-  }, []);
-
-  const handleDeleteSession = useCallback((id: string) => {
-    if (!window.confirm("Are you sure you want to delete this chat session?")) return;
-    
-    setChatSessions(prev => {
-      const updated = prev.filter(s => s.id !== id);
-      safeSaveToLocalStorage(CHAT_SESSIONS_KEY, updated);
-      return updated;
-    });
-
-    if (currentChatSessionId === id) {
-      const remainingSessions = chatSessions.filter(s => s.id !== id);
-      if (remainingSessions.length > 0) {
-        const mostRecent = remainingSessions.sort((a, b) => new Date(b.lastActivityAt).getTime() - new Date(a.lastActivityAt).getTime())[0];
-        setCurrentChatSessionId(mostRecent.id);
-        safeSaveToLocalStorage(CURRENT_CHAT_SESSION_ID_KEY, mostRecent.id);
-      } else {
-        setCurrentChatSessionId(null);
-        safeSaveToLocalStorage(CURRENT_CHAT_SESSION_ID_KEY, null);
+                            const updatedQuizState: InlineQuizState = {
+                                ...(msg.inlineQuizState as InlineQuizState),
+                                score,
+                                status: 'completed',
+                            };
+                            const completedQuizMsg = { ...msg, inlineQuizState: updatedQuizState };
+                            completedMessage = completedQuizMsg;
+                            return completedQuizMsg;
+                        }
+                        return msg;
+                    });
+                    return { ...session, messages: updatedMessages };
+                }
+                return session;
+            });
+        });
+  
+        if (completedMessage?.inlineQuizState && completedMessage.activitySuggestion) {
+          const { score, quizData } = completedMessage.inlineQuizState;
+          if (score === undefined || !quizData) return;
+  
+          const totalQuestions = quizData.questions.length;
+          const pointsEarned = behaviorOverrides.pointsPerActivityCompletedBase + (score * behaviorOverrides.pointsPerQuizCorrectAnswer);
+          addHikmahPoints(pointsEarned);
+  
+          const newAchievementCard: UnlockedAchievementCard = {
+            id: `achieve-${Date.now()}`,
+            activityType: 'quiz',
+            activityTitle: quizData.title,
+            activityTopic: completedMessage.activitySuggestion.topic,
+            originalSuggestionText: completedMessage.activitySuggestion.displayText,
+            score: score,
+            maxScore: totalQuestions,
+            pointsEarned: pointsEarned,
+            timestamp: new Date(),
+          };
+          addAchievementCard(newAchievementCard);
+  
+          const achievementSystemMessage: ChatMessage = {
+            id: `achievement-${newAchievementCard.id}`,
+            sender: MessageSender.SYSTEM,
+            text: '',
+            timestamp: new Date(),
+            unlockedAchievementCard: newAchievementCard,
+          };
+          updateChatSession(currentChatSessionId, s => ({ ...s, messages: [...s.messages, achievementSystemMessage] }));
+  
+          const followUpPrompt = `The user just completed the quiz "${newAchievementCard.activityTitle}" and scored ${newAchievementCard.score} out of ${newAchievementCard.maxScore}. Please provide some brief, encouraging feedback and suggest a relevant follow-up conversation topic.`;
+          requestAiFollowUp(followUpPrompt);
+        }
+      }, 500);
+      return;
+    }
+  
+    updateMessageInSession(currentChatSessionId, messageId, msg => {
+      if (!msg.inlineQuizState || !msg.inlineQuizState.quizData) return msg;
+      const state = msg.inlineQuizState;
+      let newState = { ...state };
+      switch (action) {
+        case 'select_option':
+          if (payload?.optionIndex !== undefined) {
+            newState.selectedAnswers = { ...state.selectedAnswers, [state.currentQuestionIndex]: payload.optionIndex };
+          }
+          break;
+        case 'next':
+          if (state.currentQuestionIndex < state.quizData.questions.length - 1) {
+            newState.currentQuestionIndex++;
+          }
+          break;
+        case 'prev':
+          if (state.currentQuestionIndex > 0) {
+            newState.currentQuestionIndex--;
+          }
+          break;
       }
+      return { ...msg, inlineQuizState: newState };
+    });
+  }, [currentChatSessionId, updateMessageInSession, addHikmahPoints, addAchievementCard, requestAiFollowUp, updateChatSession, setChatSessions, behaviorOverrides]);
+
+  const handleKhitmahInteraction = useCallback(async (messageId: string, action: 'turn_page' | 'bookmark_verse', payload: { newPageNumber?: number, ayah?: AyahWithTranslation }) => {
+    if (!currentChatSessionId) return;
+
+    if (action === 'turn_page' && payload.newPageNumber) {
+        const { newPageNumber } = payload;
+        if (newPageNumber < 1 || newPageNumber > 604) return;
+        
+        const currentMessage = chatSessions.find(s => s.id === currentChatSessionId)?.messages.find(m => m.id === messageId);
+        const currentPage = currentMessage?.inlineKhitmahReaderState?.pageData?.pageNumber;
+        if (currentPage && newPageNumber > currentPage) {
+            addHikmahPoints(behaviorOverrides.pointsPerKhitmahPageRead);
+        }
+        setKhitmahProgress({ currentPageNumber: newPageNumber });
+        
+        updateMessageInSession(currentChatSessionId, messageId, msg => ({
+          ...msg,
+          inlineKhitmahReaderState: { ...msg.inlineKhitmahReaderState!, status: 'loading' }
+        }));
+        
+        try {
+            const pageData = await contentService.fetchQuranPage(newPageNumber);
+            const bookmarkedKeysForPage = bookmarkedAyahs.filter(b => b.pageNumber === newPageNumber).map(b => b.verse_key);
+            updateMessageInSession(currentChatSessionId, messageId, msg => ({
+                ...msg, inlineKhitmahReaderState: {
+                    status: 'ready',
+                    pageData: { pageNumber: newPageNumber, verses: pageData },
+                    bookmarkedVerseKeys: bookmarkedKeysForPage,
+                }
+            }));
+        } catch(e) {
+            const errorMsg = e instanceof Error ? e.message : "Failed to load Quran page.";
+            updateMessageInSession(currentChatSessionId, messageId, msg => ({ ...msg, inlineKhitmahReaderState: { ...msg.inlineKhitmahReaderState!, status: 'error', pageData: null, errorMsg } }));
+        }
+    } else if (action === 'bookmark_verse' && payload.ayah) {
+        const { ayah } = payload;
+        const verseKey = ayah.verse_key;
+        const pageNumber = chatSessions.find(s => s.id === currentChatSessionId)?.messages.find(m => m.id === messageId)?.inlineKhitmahReaderState?.pageData?.pageNumber;
+
+        if (!pageNumber) return;
+
+        updateMessageInSession(currentChatSessionId, messageId, msg => {
+            if (!msg.inlineKhitmahReaderState) return msg;
+            
+            const currentBookmarks = msg.inlineKhitmahReaderState.bookmarkedVerseKeys;
+            const isBookmarked = currentBookmarks.includes(verseKey);
+            const newBookmarks = isBookmarked ? currentBookmarks.filter(k => k !== verseKey) : [...currentBookmarks, verseKey];
+            
+            if (isBookmarked) {
+                setBookmarkedAyahs(prev => prev.filter(b => b.verse_key !== verseKey));
+            } else {
+                const newBookmark: BookmarkedAyah = {
+                    id: `ayah-${verseKey}`,
+                    verse_key: verseKey,
+                    text_uthmani: ayah.text_uthmani,
+                    translation: ayah.translation,
+                    pageNumber: pageNumber,
+                    timestamp: new Date(),
+                    chatSessionId: currentChatSessionId,
+                    originalMessageId: messageId,
+                };
+                setBookmarkedAyahs(prev => [...prev, newBookmark]);
+            }
+
+            return {
+                ...msg,
+                inlineKhitmahReaderState: { ...msg.inlineKhitmahReaderState, bookmarkedVerseKeys: newBookmarks }
+            };
+        });
     }
-  }, [currentChatSessionId, chatSessions]);
+  }, [currentChatSessionId, updateMessageInSession, addHikmahPoints, behaviorOverrides, chatSessions, bookmarkedAyahs]);
 
-  const handleNavigation = useCallback((view: AppView) => {
-    setCurrentView(view);
-    if (view === 'chat' && !currentChatSessionId && userData) {
-      handleStartNewChat(userData);
-    }
-  }, [currentChatSessionId, userData, handleStartNewChat]);
 
-  const handleSponsorApplicationSubmit = useCallback((application: SponsorApplication) => {
-    setPendingSponsorApplications(prev => [...prev, application]);
-    setCurrentView('chat');
-  }, []);
+  const handleFlipBookInteraction = useCallback((messageId: string, action: 'turn_page', payload: { newPageIndex: number }) => {
+    if (!currentChatSessionId) return;
+    updateMessageInSession(currentChatSessionId, messageId, msg => {
+      if (!msg.inlineFlipBookState || !msg.inlineFlipBookState.bookData) return msg;
+      
+      const { currentPageIndex } = msg.inlineFlipBookState;
+      const newIndex = payload.newPageIndex;
 
-  const handleApproveApplication = useCallback((application: SponsorApplication, tier: SponsorTier, duration: number) => {
-    const approvedSponsor: ApprovedSponsor = {
-      id: Date.now().toString(),
-      ...application,
-      tier,
-      duration,
-      startDate: new Date().toISOString(),
-      endDate: calculateEndDate(duration),
-      clickCount: 0,
-    };
-
-    setApprovedSponsors(prev => {
-      const updated = [...prev, approvedSponsor];
-      safeSaveToLocalStorage(APPROVED_SPONSORS_KEY, updated);
-      return updated;
-    });
-
-    setPendingSponsorApplications(prev => prev.filter(app => app.id !== application.id));
-  }, []);
-
-  const handleRejectApplication = useCallback((applicationId: string) => {
-    setPendingSponsorApplications(prev => prev.filter(app => app.id !== applicationId));
-  }, []);
-
-  const handleUpdateSponsor = useCallback((updatedSponsor: ApprovedSponsor) => {
-    setApprovedSponsors(prev => {
-      const updated = prev.map(sponsor => 
-        sponsor.id === updatedSponsor.id ? updatedSponsor : sponsor
-      );
-      safeSaveToLocalStorage(APPROVED_SPONSORS_KEY, updated);
-      return updated;
-    });
-  }, []);
-
-  const handleDeleteSponsor = useCallback((sponsorId: string) => {
-    setApprovedSponsors(prev => {
-      const updated = prev.filter(sponsor => sponsor.id !== sponsorId);
-      safeSaveToLocalStorage(APPROVED_SPONSORS_KEY, updated);
-      return updated;
-    });
-  }, []);
-
-  const handleAdminLogin = useCallback(() => {
-    setIsAdminAuthenticated(true);
-    localStorage.setItem(ADMIN_AUTH_KEY, 'true');
-    setCurrentView('adminDashboard');
-  }, []);
-
-  const handleLanguageChange = useCallback((code: string) => {
-    if (!userData) return;
-    
-    const lang = LANGUAGES.find(l => l.code === code);
-    if (lang) {
-      const updatedUserData = { 
-        ...userData, 
-        preferredLanguageCode: lang.code, 
-        preferredLanguageName: lang.name 
-      };
-      setUserData(updatedUserData);
-      safeSaveToLocalStorage(USER_DATA_KEY, updatedUserData);
-      setShowLanguageModal(false);
-
-      // Send language change notification to AI
-      if (currentChatSessionId) {
-        requestAiFollowUp(`[SYSTEM_COMMAND] The user has just changed their preferred language to ${lang.name}. Acknowledge this change in ${lang.name} and confirm you will now converse in this language.`);
+      if (newIndex > currentPageIndex) {
+        addHikmahPoints(behaviorOverrides.pointsPerFlipbookPageTurned);
       }
+
+      const newState: InlineFlipBookState = {
+        ...msg.inlineFlipBookState,
+        currentPageIndex: newIndex,
+      };
+      return { ...msg, inlineFlipBookState: newState };
+    });
+  }, [currentChatSessionId, updateMessageInSession, addHikmahPoints, behaviorOverrides]);
+
+  const handleHadithExplorerInteraction = useCallback((messageId: string, action: 'turn_page' | 'bookmark_page', payload: { newPageIndex?: number; pageIndex?: number }) => {
+    if (!currentChatSessionId) return;
+    updateMessageInSession(currentChatSessionId, messageId, msg => {
+        if (!msg.inlineHadithExplorerState || !msg.inlineHadithExplorerState.bookData) return msg;
+
+        const state = msg.inlineHadithExplorerState;
+        let newState = { ...state };
+
+        if (action === 'turn_page' && payload.newPageIndex !== undefined) {
+            const { newPageIndex } = payload;
+            if (newPageIndex > state.currentPageIndex) {
+                addHikmahPoints(behaviorOverrides.pointsPerHadithRead);
+                setHadithProgress({
+                    collectionName: state.bookData?.title || 'Hadith',
+                    bookName: msg.activitySuggestion?.topic || 'Collection',
+                    hadithNumber: newPageIndex + 1,
+                    totalHadithsInBook: state.bookData.pages.length,
+                });
+            }
+            newState.currentPageIndex = newPageIndex;
+        }
+        
+        if (action === 'bookmark_page' && payload.pageIndex !== undefined) {
+            const { pageIndex } = payload;
+            const alreadyBookmarked = state.bookmarkedPageIndexes.includes(pageIndex);
+            
+            if (alreadyBookmarked) {
+                newState.bookmarkedPageIndexes = state.bookmarkedPageIndexes.filter(i => i !== pageIndex);
+                setBookmarkedHadiths(prev => prev.filter(b => !(b.originalMessageId === messageId && b.id.endsWith(`-${pageIndex}`))));
+            } else {
+                newState.bookmarkedPageIndexes = [...state.bookmarkedPageIndexes, pageIndex];
+                const pageData = state.bookData?.pages[pageIndex];
+                if (pageData) {
+                    const newBookmark: BookmarkedHadith = {
+                        id: `hadith-${messageId}-${pageIndex}`,
+                        originalMessageId: messageId,
+                        chatSessionId: currentChatSessionId,
+                        title: pageData.title,
+                        content: pageData.content,
+                        source: pageData.source,
+                        timestamp: new Date(),
+                    };
+                    setBookmarkedHadiths(prev => [...prev, newBookmark]);
+                }
+            }
+        }
+
+        return { ...msg, inlineHadithExplorerState: newState };
+    });
+  }, [currentChatSessionId, updateMessageInSession, addHikmahPoints, setHadithProgress, behaviorOverrides]);
+
+
+  const handleInlineWordSearchInteraction = useCallback((messageId: string, action: 'found_word', payload: { word: string }) => {
+    if (!currentChatSessionId) return;
+
+    let isCompleted = false;
+    let completedMessage: ChatMessage | null = null;
+    
+    updateMessageInSession(currentChatSessionId, messageId, msg => {
+      if (!msg.inlineWordSearchState || !msg.inlineWordSearchState.wordSearchData) return msg;
+      const state = msg.inlineWordSearchState;
+      if (state.foundWords.includes(payload.word)) return msg;
+      addHikmahPoints(behaviorOverrides.pointsPerWordFound);
+      const newFoundWords = [...state.foundWords, payload.word];
+      
+      let newState: InlineWordSearchState = { ...state, foundWords: newFoundWords };
+      if (newFoundWords.length === state.wordSearchData.words.length) {
+        const finalTime = state.startTime ? Math.round((Date.now() - state.startTime) / 1000) : state.elapsedTime;
+        newState.status = 'completed';
+        newState.elapsedTime = finalTime;
+        newState.startTime = null;
+        isCompleted = true;
+        completedMessage = { ...msg, inlineWordSearchState: newState };
+      }
+      return { ...msg, inlineWordSearchState: newState };
+    });
+
+    if (isCompleted && completedMessage?.inlineWordSearchState?.wordSearchData && completedMessage.activitySuggestion) {
+        const { wordSearchData, elapsedTime } = completedMessage.inlineWordSearchState;
+        const totalWords = wordSearchData.words.length;
+        const pointsEarned = behaviorOverrides.pointsPerActivityCompletedBase + (totalWords * behaviorOverrides.pointsPerWordFound);
+        addHikmahPoints(behaviorOverrides.pointsPerActivityCompletedBase); 
+
+        const newAchievementCard: UnlockedAchievementCard = {
+            id: `achieve-${Date.now()}`, activityType: 'word_search', activityTitle: wordSearchData.title,
+            activityTopic: completedMessage.activitySuggestion.topic, originalSuggestionText: completedMessage.activitySuggestion.displayText,
+            score: totalWords, maxScore: totalWords, pointsEarned: pointsEarned, timestamp: new Date(), timeTakenSeconds: elapsedTime,
+        };
+        addAchievementCard(newAchievementCard);
+
+        const achievementSystemMessage: ChatMessage = {
+            id: `achievement-${newAchievementCard.id}`, sender: MessageSender.SYSTEM, text: '', timestamp: new Date(), unlockedAchievementCard: newAchievementCard,
+        };
+        updateChatSession(currentChatSessionId, s => ({ ...s, messages: [...s.messages, achievementSystemMessage] }));
+        
+        const followUpPrompt = `The user just completed the word search game "${newAchievementCard.activityTitle}" in ${elapsedTime} seconds. Please provide some brief, encouraging feedback and suggest a relevant follow-up conversation topic.`;
+        requestAiFollowUp(followUpPrompt);
     }
-  }, [userData, currentChatSessionId, requestAiFollowUp]);
+  }, [currentChatSessionId, updateMessageInSession, addHikmahPoints, addAchievementCard, requestAiFollowUp, updateChatSession, behaviorOverrides]);
 
-  const handleSponsorLinkClick = useCallback((id: string, link: SponsorLink) => {
-    setApprovedSponsors(prev => {
-      const updated = prev.map(s => 
-        s.id === id ? { ...s, clickCount: (s.clickCount || 0) + 1 } : s
-      );
-      safeSaveToLocalStorage(APPROVED_SPONSORS_KEY, updated);
-      return updated;
-    });
+  const handleContinueReading = useCallback((type: 'quran' | 'hadith') => {
+      if(!userData) return;
+      let prompt = '';
+      if (type === 'quran') {
+          if (khitmahProgress) {
+            prompt = `The user wants to continue their Quran Khitmah. Please open the reader for them at page ${khitmahProgress.currentPageNumber}.`;
+          } else {
+            prompt = `The user wants to start their Quran Khitmah. Please suggest opening the reader to begin.`;
+          }
+      } else if (type === 'hadith') {
+          if (hadithProgress) {
+            prompt = `The user wants to continue their Hadith study. Please open the Hadith explorer for them. They were last studying the collection "${hadithProgress.collectionName}".`;
+          } else {
+            prompt = `The user wants to start studying Hadith. Please suggest a collection of Hadith to start with, for example on the topic of patience.`;
+          }
+      }
+      if (prompt) handleSendMessage(prompt);
+  }, [userData, khitmahProgress, hadithProgress, handleSendMessage]);
 
-    if (link.linkUrl) {
-      window.open(link.linkUrl, '_blank', 'noopener,noreferrer');
-    }
-  }, []);
-
-  const handleUpdateCardBackgrounds = useCallback((bgs: CardBackground[]) => {
-    setCardBackgrounds(bgs);
-    safeSaveToLocalStorage(CARD_BACKGROUNDS_STORE_KEY, bgs);
-  }, []);
-
-  const handleUpdateCardBackgroundPacks = useCallback((packs: CardBackgroundPack[]) => {
-    setCardBackgroundPacks(packs);
-    safeSaveToLocalStorage(CARD_BACKGROUND_PACKS_KEY, packs);
-  }, []);
-
-  const handleUnlockBackground = useCallback((backgroundId: string, cost: number) => {
-    if (!userData || userData.hikmahPoints < cost) return false;
-
-    const background = cardBackgrounds.find(bg => bg.id === backgroundId);
-    if (!background) return false;
-
-    // Check if already unlocked
-    if (unlockedCardBackgroundIds.includes(backgroundId)) return false;
-
-    // Check unlock limit
-    if (background.limit !== null && background.unlockCount >= background.limit) return false;
-
-    // Deduct points and unlock
-    const updatedUserData = { ...userData, hikmahPoints: userData.hikmahPoints - cost };
-    setUserData(updatedUserData);
-    safeSaveToLocalStorage(USER_DATA_KEY, updatedUserData);
-
-    // Add to unlocked backgrounds
-    setUnlockedCardBackgroundIds(prev => {
-      const updated = [...prev, backgroundId];
-      safeSaveToLocalStorage(UNLOCKED_CARD_BACKGROUNDS_KEY, updated);
-      return updated;
-    });
-
-    // Update unlock count
-    setCardBackgrounds(prev => {
-      const updated = prev.map(bg => 
-        bg.id === backgroundId ? { ...bg, unlockCount: bg.unlockCount + 1 } : bg
-      );
-      safeSaveToLocalStorage(CARD_BACKGROUNDS_STORE_KEY, updated);
-      return updated;
-    });
-
-    return true;
-  }, [userData, cardBackgrounds, unlockedCardBackgroundIds]);
-
-  const handleUnlockPack = useCallback((packId: string, cost: number) => {
-    if (!userData || userData.hikmahPoints < cost) return false;
-
-    const pack = cardBackgroundPacks.find(p => p.id === packId);
-    if (!pack) return false;
-
-    // Check if already unlocked
-    if (unlockedPackIds.includes(packId)) return false;
-
-    // Check unlock limit
-    if (pack.limit !== null && pack.unlockCount >= pack.limit) return false;
-
-    // Deduct points and unlock pack
-    const updatedUserData = { ...userData, hikmahPoints: userData.hikmahPoints - cost };
-    setUserData(updatedUserData);
-    safeSaveToLocalStorage(USER_DATA_KEY, updatedUserData);
-
-    // Add to unlocked packs
-    setUnlockedPackIds(prev => {
-      const updated = [...prev, packId];
-      safeSaveToLocalStorage(UNLOCKED_PACKS_KEY, updated);
-      return updated;
-    });
-
-    // Unlock all backgrounds in the pack
-    setUnlockedCardBackgroundIds(prev => {
-      const updated = [...prev, ...pack.backgroundIds];
-      safeSaveToLocalStorage(UNLOCKED_CARD_BACKGROUNDS_KEY, updated);
-      return updated;
-    });
-
-    // Update pack unlock count
-    setCardBackgroundPacks(prev => {
-      const updated = prev.map(p => 
-        p.id === packId ? { ...p, unlockCount: p.unlockCount + 1 } : p
-      );
-      safeSaveToLocalStorage(CARD_BACKGROUND_PACKS_KEY, updated);
-      return updated;
-    });
-
-    return true;
-  }, [userData, cardBackgroundPacks, unlockedPackIds]);
-
-  const handleGenerateReflection = useCallback(async (prompt: string) => {
-    if (!userData) return;
-
+  const handleGenerateReflection = useCallback(async (date: string) => {
+    if (!userData) { setReflectionError("User data is not available."); return; }
     setIsLoadingReflection(true);
     setReflectionError(null);
 
     try {
-      const response = await geminiService.generateReflection(prompt, userData);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(today.getDate() + 1);
+
+      const todaysUserMessages = chatSessions.flatMap(s => s.messages).filter(m => new Date(m.timestamp) >= today && new Date(m.timestamp) < tomorrow && m.sender === MessageSender.USER).map(m => m.text).slice(-5);
+      const todaysAchievements = unlockedAchievementCards.filter(c => new Date(c.timestamp) >= today && new Date(c.timestamp) < tomorrow).map(c => `completed a quiz on "${c.activityTopic}"`);
+      const todaysWisdom = unlockedWisdomCards.filter(c => new Date(c.timestamp) >= today && new Date(c.timestamp) < tomorrow).map(c => c.takeaway.text).slice(-3);
+      let contextSummary = "";
+      if (todaysUserMessages.length > 0) contextSummary += `\n- Recent conversation topics included: "${todaysUserMessages.join('", "')}".`;
+      if (todaysAchievements.length > 0) contextSummary += `\n- Today, they ${[...new Set(todaysAchievements)].join(', and ')}.`;
+      if (todaysWisdom.length > 0) contextSummary += `\n- They reflected on wisdom such as: "${todaysWisdom.join('", "')}".`;
       
-      const newReflection: ReflectionCard = {
-        id: Date.now().toString(),
-        title: "Personal Reflection",
-        content: response,
-        prompt,
-        unlockedAt: new Date().toISOString(),
-      };
+      const prompt = contextSummary
+        ? `Generate a short, personal, and uplifting Islamic reflection... Here is the user's activity context:${contextSummary}\n\nThe reflection must be in the language: ${userData.preferredLanguageCode}.`
+        : `The user hasn't had much activity today. Generate a short, general, uplifting, and insightful Islamic reflection... The reflection must be in the language: ${userData.preferredLanguageCode}.`;
 
-      setUnlockedReflectionCards(prev => {
-        const updated = [...prev, newReflection];
-        safeSaveToLocalStorage(UNLOCKED_REFLECTION_CARDS_KEY, updated);
-        return updated;
-      });
+      const reflectionContent = await geminiService.generateReflectionContent(prompt, userData);
+      
+      const newReflection: ReflectionCard = { id: `reflection-${date}`, date: date, content: reflectionContent, timestamp: new Date() };
+      setUnlockedReflectionCards(prev => [newReflection, ...prev.filter(r => r.date !== date)]);
+      addHikmahPoints(behaviorOverrides.pointsPerReflectionGenerated);
 
-      // Award points for reflection
-      const pointsToAdd = behaviorOverrides.pointsPerReflectionGenerated;
-      const updatedUserData = { ...userData, hikmahPoints: userData.hikmahPoints + pointsToAdd };
-      setUserData(updatedUserData);
-      safeSaveToLocalStorage(USER_DATA_KEY, updatedUserData);
-
-    } catch (error) {
-      console.error('Error generating reflection:', error);
-      setReflectionError('Failed to generate reflection. Please try again.');
+    } catch (e) {
+      setReflectionError(e instanceof Error ? e.message : "An unknown error occurred.");
     } finally {
       setIsLoadingReflection(false);
     }
-  }, [userData, behaviorOverrides.pointsPerReflectionGenerated]);
+  }, [userData, chatSessions, unlockedAchievementCards, unlockedWisdomCards, addHikmahPoints, behaviorOverrides]);
 
-  const handleUpdateThemeOverrides = useCallback((overrides: ThemeOverrides) => {
-    setThemeOverrides(overrides);
-    safeSaveToLocalStorage(THEME_OVERRIDES_KEY, overrides);
-  }, []);
-
-  const handleUpdateBehaviorOverrides = useCallback((overrides: BehaviorOverrides) => {
-    setBehaviorOverrides(overrides);
-    safeSaveToLocalStorage(BEHAVIOR_OVERRIDES_KEY, overrides);
-  }, []);
-
-  const handleUpdateSystemPrompt = useCallback((prompt: string) => {
-    setCustomSystemPrompt(prompt);
-    safeSaveToLocalStorage(CUSTOM_SYSTEM_PROMPT_KEY, prompt);
-  }, []);
-
-  // Activity and interactive content handlers
-  const [currentActivity, setCurrentActivity] = useState<InteractiveActivitySuggestion | null>(null);
-  const [inlineQuizStates, setInlineQuizStates] = useState<{ [key: string]: InlineQuizState }>({});
-  const [inlineKhitmahStates, setInlineKhitmahStates] = useState<{ [key: string]: InlineKhitmahReaderState }>({});
-  const [inlineWordSearchStates, setInlineWordSearchStates] = useState<{ [key: string]: InlineWordSearchState }>({});
-  const [inlineFlipBookStates, setInlineFlipBookStates] = useState<{ [key: string]: InlineFlipBookState }>({});
-  const [inlineHadithStates, setInlineHadithStates] = useState<{ [key: string]: InlineHadithExplorerState }>({});
-
-  const handleStartActivity = useCallback((activity: InteractiveActivitySuggestion) => {
-    setCurrentActivity(activity);
-  }, []);
-
-  const handleCompleteActivity = useCallback((activityId: string, score?: number) => {
+  const handleUnlockBackground = useCallback((backgroundId: string) => {
     if (!userData) return;
+    
+    const bgToUnlock = cardBackgrounds.find(b => b.id === backgroundId);
+    if (!bgToUnlock) { alert("Error: Background not found."); return; }
+    if (bgToUnlock.limit !== null && (bgToUnlock.unlockCount || 0) >= bgToUnlock.limit) { alert("Sorry, this background is a limited edition and is no longer available."); return; }
+    if (userData.hikmahPoints < bgToUnlock.cost) { alert(`You need ${bgToUnlock.cost} Hikmah Points to unlock this background.`); return; }
 
-    const basePoints = behaviorOverrides.pointsPerActivityCompletedBase;
-    const bonusPoints = score ? Math.floor(score * 10) : 0;
-    const totalPoints = basePoints + bonusPoints;
-
-    const updatedUserData = { ...userData, hikmahPoints: userData.hikmahPoints + totalPoints };
-    setUserData(updatedUserData);
-    safeSaveToLocalStorage(USER_DATA_KEY, updatedUserData);
-
-    setCurrentActivity(null);
-  }, [userData, behaviorOverrides.pointsPerActivityCompletedBase]);
-
-  const handleInlineQuizInteraction = useCallback((quizId: string, action: string, data?: any) => {
-    if (!userData) return;
-
-    setInlineQuizStates(prev => {
-      const currentState = prev[quizId] || { currentQuestionIndex: 0, score: 0, isCompleted: false, userAnswers: [] };
-      let newState = { ...currentState };
-
-      switch (action) {
-        case 'answer':
-          if (data.isCorrect) {
-            newState.score += behaviorOverrides.pointsPerQuizCorrectAnswer;
-            const updatedUserData = { ...userData, hikmahPoints: userData.hikmahPoints + behaviorOverrides.pointsPerQuizCorrectAnswer };
-            setUserData(updatedUserData);
-            safeSaveToLocalStorage(USER_DATA_KEY, updatedUserData);
-          }
-          newState.userAnswers = [...newState.userAnswers, data.answer];
-          break;
-        case 'next':
-          newState.currentQuestionIndex += 1;
-          break;
-        case 'complete':
-          newState.isCompleted = true;
-          break;
-      }
-
-      return { ...prev, [quizId]: newState };
-    });
-  }, [userData, behaviorOverrides.pointsPerQuizCorrectAnswer]);
-
-  const handleKhitmahInteraction = useCallback((action: string, data?: any) => {
-    if (!userData) return;
-
-    switch (action) {
-      case 'read_page':
-        const pointsToAdd = behaviorOverrides.pointsPerKhitmahPageRead;
-        const updatedUserData = { ...userData, hikmahPoints: userData.hikmahPoints + pointsToAdd };
-        setUserData(updatedUserData);
-        safeSaveToLocalStorage(USER_DATA_KEY, updatedUserData);
-
-        setKhitmahProgress(prev => {
-          const newProgress = prev ? {
-            ...prev,
-            currentPage: data.pageNumber,
-            lastReadAt: new Date().toISOString(),
-            totalPagesRead: prev.totalPagesRead + 1,
-          } : {
-            currentSurah: data.surah,
-            currentPage: data.pageNumber,
-            lastReadAt: new Date().toISOString(),
-            totalPagesRead: 1,
-            startedAt: new Date().toISOString(),
-          };
-          safeSaveToLocalStorage(KHITMAH_PROGRESS_KEY, newProgress);
-          return newProgress;
-        });
-        break;
-      case 'bookmark_ayah':
-        const newBookmark: BookmarkedAyah = {
-          id: Date.now().toString(),
-          surah: data.surah,
-          ayah: data.ayah,
-          translation: data.translation,
-          bookmarkedAt: new Date().toISOString(),
-        };
-        setBookmarkedAyahs(prev => {
-          const updated = [...prev, newBookmark];
-          safeSaveToLocalStorage(BOOKMARKED_AYAH_KEY, updated);
-          return updated;
-        });
-        break;
+    if (window.confirm(`Unlock "${bgToUnlock.name}" for ${bgToUnlock.cost} Hikmah Points?`)) {
+        addHikmahPoints(-bgToUnlock.cost);
+        setCardBackgrounds(prevBgs => prevBgs.map(bg => bg.id === backgroundId ? { ...bg, unlockCount: (bg.unlockCount || 0) + 1 } : bg));
+        setUnlockedCardBackgroundIds(prev => [...new Set([...prev, backgroundId])]);
+        setUnlockedActivityBackgroundIds(prev => [...new Set([...prev, backgroundId])]);
+        alert(`Successfully unlocked "${bgToUnlock.name}"!`);
     }
-  }, [userData, behaviorOverrides.pointsPerKhitmahPageRead]);
+  }, [userData, cardBackgrounds, addHikmahPoints]);
 
-  const handleHadithExplorerInteraction = useCallback((action: string, data?: any) => {
+  const handleUnlockPack = useCallback((packId: string) => {
     if (!userData) return;
 
-    switch (action) {
-      case 'read_hadith':
-        const pointsToAdd = behaviorOverrides.pointsPerHadithRead;
-        const updatedUserData = { ...userData, hikmahPoints: userData.hikmahPoints + pointsToAdd };
-        setUserData(updatedUserData);
-        safeSaveToLocalStorage(USER_DATA_KEY, updatedUserData);
+    const packToUnlock = cardBackgroundPacks.find(p => p.id === packId);
+    if (!packToUnlock) { alert("Error: Pack not found."); return; }
+    if (packToUnlock.limit !== null && (packToUnlock.unlockCount || 0) >= packToUnlock.limit) { alert("Sorry, this pack is a limited edition and is no longer available."); return; }
+    if (userData.hikmahPoints < packToUnlock.cost) { alert(`You need ${packToUnlock.cost} Hikmah Points to unlock this pack.`); return; }
+    
+    if (window.confirm(`Unlock the "${packToUnlock.name}" pack for ${packToUnlock.cost} Hikmah Points?`)) {
+      addHikmahPoints(-packToUnlock.cost);
+      setCardBackgroundPacks(prevPacks => prevPacks.map(p => p.id === packId ? { ...p, unlockCount: (p.unlockCount || 0) + 1 } : p));
+      setUnlockedPackIds(prev => [...new Set([...prev, packId])]);
 
-        setHadithProgress(prev => {
-          const newProgress = prev ? {
-            ...prev,
-            currentHadithIndex: data.hadithIndex,
-            lastReadAt: new Date().toISOString(),
-            totalHadithsRead: prev.totalHadithsRead + 1,
-          } : {
-            currentCollection: data.collection,
-            currentHadithIndex: data.hadithIndex,
-            lastReadAt: new Date().toISOString(),
-            totalHadithsRead: 1,
-            startedAt: new Date().toISOString(),
-          };
-          safeSaveToLocalStorage(HADITH_PROGRESS_KEY, newProgress);
-          return newProgress;
-        });
-        break;
-      case 'bookmark_hadith':
-        const newBookmark: BookmarkedHadith = {
-          id: Date.now().toString(),
-          collection: data.collection,
-          hadithNumber: data.hadithNumber,
-          text: data.text,
-          translation: data.translation,
-          bookmarkedAt: new Date().toISOString(),
-        };
-        setBookmarkedHadiths(prev => {
-          const updated = [...prev, newBookmark];
-          safeSaveToLocalStorage(BOOKMARKED_HADITHS_KEY, updated);
-          return updated;
-        });
-        break;
+      const bgIdsToUnlock = packToUnlock.backgroundIds;
+      setCardBackgrounds(prevBgs => prevBgs.map(bg => bgIdsToUnlock.includes(bg.id) ? { ...bg, unlockCount: (bg.unlockCount || 0) + 1 } : bg));
+      setUnlockedCardBackgroundIds(prev => [...new Set([...prev, ...bgIdsToUnlock])]);
+      setUnlockedActivityBackgroundIds(prev => [...new Set([...prev, ...bgIdsToUnlock])]);
+      alert(`Successfully unlocked the "${packToUnlock.name}" pack!`);
     }
-  }, [userData, behaviorOverrides.pointsPerHadithRead]);
+  }, [userData, cardBackgroundPacks, addHikmahPoints, cardBackgrounds]);
 
-  const handleFlipBookInteraction = useCallback((flipBookId: string, action: string, data?: any) => {
-    if (!userData) return;
 
-    setInlineFlipBookStates(prev => {
-      const currentState = prev[flipBookId] || { currentPageIndex: 0, isCompleted: false };
-      let newState = { ...currentState };
-
-      switch (action) {
-        case 'turn_page':
-          newState.currentPageIndex = data.pageIndex;
-          const pointsToAdd = behaviorOverrides.pointsPerFlipbookPageTurned;
-          const updatedUserData = { ...userData, hikmahPoints: userData.hikmahPoints + pointsToAdd };
-          setUserData(updatedUserData);
-          safeSaveToLocalStorage(USER_DATA_KEY, updatedUserData);
-          break;
-        case 'complete':
-          newState.isCompleted = true;
-          break;
-      }
-
-      return { ...prev, [flipBookId]: newState };
-    });
-  }, [userData, behaviorOverrides.pointsPerFlipbookPageTurned]);
-
-  const handleInlineWordSearchInteraction = useCallback((wordSearchId: string, action: string, data?: any) => {
-    if (!userData) return;
-
-    setInlineWordSearchStates(prev => {
-      const currentState = prev[wordSearchId] || { foundWords: [], score: 0, isCompleted: false };
-      let newState = { ...currentState };
-
-      switch (action) {
-        case 'find_word':
-          if (!newState.foundWords.includes(data.word)) {
-            newState.foundWords = [...newState.foundWords, data.word];
-            newState.score += behaviorOverrides.pointsPerWordFound;
-            const updatedUserData = { ...userData, hikmahPoints: userData.hikmahPoints + behaviorOverrides.pointsPerWordFound };
-            setUserData(updatedUserData);
-            safeSaveToLocalStorage(USER_DATA_KEY, updatedUserData);
-          }
-          break;
-        case 'complete':
-          newState.isCompleted = true;
-          break;
-      }
-
-      return { ...prev, [wordSearchId]: newState };
-    });
-  }, [userData, behaviorOverrides.pointsPerWordFound]);
-
-  const handleContinueReading = useCallback((type: 'khitmah' | 'hadith') => {
-    if (type === 'khitmah' && khitmahProgress) {
-      requestAiFollowUp(`[SYSTEM_COMMAND] The user wants to continue reading the Quran from where they left off. Their last position was Surah ${khitmahProgress.currentSurah}, page ${khitmahProgress.currentPage}. Please provide them with a Khitmah reader starting from this position.`);
-    } else if (type === 'hadith' && hadithProgress) {
-      requestAiFollowUp(`[SYSTEM_COMMAND] The user wants to continue reading Hadith from where they left off. Their last position was ${hadithProgress.currentCollection}, hadith index ${hadithProgress.currentHadithIndex}. Please provide them with a Hadith explorer starting from this position.`);
+  const handleNavigation = (view: AppView) => {
+    if (view === 'userDataForm' && window.confirm("This will clear current user profile and ALL chat history. Start fresh?")) {
+        localStorage.clear();
+        setUserData(null); setChatSessions([]); setCurrentChatSessionId(null); setError(null);
+        setUnlockedWisdomCards([]); setUnlockedCardBackgroundIds([]); setUnlockedAchievementCards([]);
+        setUnlockedActivityBackgroundIds([]); setUnlockedReflectionCards([]); setBookmarkedHadiths([]);
+        setBookmarkedAyahs([]); setKhitmahProgress(null); setHadithProgress(null);
+        setCardBackgrounds(INITIAL_CARD_BACKGROUNDS); setCardBackgroundPacks([]); setUnlockedPackIds([]);
     }
-    setCurrentView('chat');
-  }, [khitmahProgress, hadithProgress, requestAiFollowUp]);
+    if ((view === 'hikmahGallery') && !userData) { alert("Please set up your user profile first."); return; }
+    if (view === 'adminDashboard' && !isAdminAuthenticated) { setCurrentView('adminLogin'); return; }
+    setCurrentView(view);
+  };
+  
+  const handleSponsorApplicationSubmit = (appData: Omit<SponsorApplication, 'id' | 'status'>) => {
+      const newApplication: SponsorApplication = { ...appData, id: `app-${Date.now()}`, status: 'pending' };
+      setPendingSponsorApplications(prev => [...prev, newApplication]);
+      alert("Application submitted for review. Thank you!");
+      setCurrentView('chat'); 
+  };
+  
+  const handleApproveApplication = (appId: string, radiusKm: number, isGlobal: boolean, startDate: string, durationDays: number, companyName: string, contactEmail: string, linkType: SponsorLink['linkType'] | undefined, linkUrl: string | undefined, businessType: 'local' | 'online', businessCategory: string, tier: SponsorTier) => {
+      const appToApprove = pendingSponsorApplications.find(a => a.id === appId); if (!appToApprove) return;
+      const newApproved: ApprovedSponsor = { ...appToApprove, status: 'approved', radiusKm, isGlobal, startDate, durationDays, endDate: calculateEndDate(startDate, durationDays), clickCount: 0, companyName, contactEmail, linkType, linkUrl, businessType, businessCategory, tier };
+      setApprovedSponsors(prev => [...prev, newApproved]); setPendingSponsorApplications(prev => prev.filter(a => a.id !== appId));
+  };
+
+  const handleRejectApplication = (appId: string) => setPendingSponsorApplications(prev => prev.filter(a => a.id !== appId));
+  const handleUpdateSponsor = (id: string, startDate: string, durationDays: number, radiusKm: number, isGlobal: boolean, linkType: SponsorLink['linkType'] | undefined, linkUrl: string | undefined, tier: SponsorTier) => {
+      setApprovedSponsors(prev => prev.map(s => s.id === id ? { ...s, startDate, durationDays, endDate: calculateEndDate(startDate, durationDays), radiusKm, isGlobal, linkType, linkUrl, tier } : s));
+  };
+  const handleDeleteSponsor = (id: string) => setApprovedSponsors(prev => prev.filter(s => s.id !== id));
+  const handleUpdateThemeOverrides = (overrides: ThemeOverrides) => { setThemeOverrides(overrides); safeSaveToLocalStorage(THEME_OVERRIDES_KEY, overrides); };
+  const handleUpdateBehaviorOverrides = (overrides: BehaviorOverrides) => { setBehaviorOverrides(overrides); safeSaveToLocalStorage(BEHAVIOR_OVERRIDES_KEY, overrides); };
+  const handleUpdateSystemPrompt = (prompt: string) => { setCustomSystemPrompt(prompt); safeSaveToLocalStorage(CUSTOM_SYSTEM_PROMPT_KEY, prompt); };
+  const handleAdminLogin = () => { localStorage.setItem(ADMIN_AUTH_KEY, 'true'); setIsAdminAuthenticated(true); setCurrentView('adminDashboard'); };
+  const handleSwitchSession = (id: string) => { setCurrentChatSessionId(id); setIsSidebarOpen(false); };
+  const handleRenameSession = (id: string, name: string) => updateChatSession(id, s => ({ ...s, name }));
+  const handleDeleteSession = (id: string) => {
+      if (!window.confirm("Are you sure you want to delete this chat session?")) return;
+      const newSessions = chatSessions.filter(s => s.id !== id); setChatSessions(newSessions);
+      if (currentChatSessionId === id) setCurrentChatSessionId(newSessions.length > 0 ? newSessions.sort((a,b) => new Date(b.lastActivityAt).getTime() - new Date(a.lastActivityAt).getTime())[0].id : null);
+  };
+  const handleLanguageChange = (code: string) => {
+      if (!userData) return;
+      const lang = LANGUAGES.find(l => l.code === code);
+      if (lang) {
+          const updatedUserData = { ...userData, preferredLanguageCode: lang.code, preferredLanguageName: lang.name };
+          setUserData(updatedUserData); safeSaveToLocalStorage(USER_DATA_KEY, updatedUserData); setShowLanguageModal(false);
+          if (currentChatSessionId) requestAiFollowUp(`[SYSTEM_COMMAND] The user has just changed their preferred language to ${lang.name}. Acknowledge this change in ${lang.name} and confirm you will now converse in this language.`);
+      }
+  };
+  const handleSponsorLinkClick = (id: string, link: SponsorLink) => {
+      setApprovedSponsors(prev => prev.map(s => s.id === id ? { ...s, clickCount: (s.clickCount || 0) + 1 } : s));
+      if (link.linkUrl) window.open(link.linkUrl, '_blank', 'noopener,noreferrer');
+  };
+  const handleUpdateCardBackgrounds = (bgs: CardBackground[]) => { setCardBackgrounds(bgs); safeSaveToLocalStorage(CARD_BACKGROUNDS_STORE_KEY, bgs); };
+  const handleUpdateCardBackgroundPacks = (packs: CardBackgroundPack[]) => { setCardBackgroundPacks(packs); safeSaveToLocalStorage(CARD_BACKGROUND_PACKS_KEY, packs); };
 
   const currentSession = chatSessions.find(s => s.id === currentChatSessionId);
 

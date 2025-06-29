@@ -143,4 +143,136 @@ html[data-skin="noctis"] .text-gradient-accent {
    border-radius: var(--card-border-radius);
 }
 
-/* Additional styles truncated for brevity - full CSS file contains all animations and component styles */
+/* Takeaway Card Backgrounds */
+:root {
+  --takeaway-holographic-bg-light: linear-gradient(135deg, rgba(190, 225, 255, 0.95) 0%, rgba(230, 200, 255, 0.95) 25%, rgba(255, 210, 230, 0.95) 50%, rgba(200, 255, 220, 0.95) 75%, rgba(190, 225, 255, 0.95) 100%);
+  --takeaway-holographic-border-light: rgba(255, 255, 255, 0.3);
+  --takeaway-bg-serene-dawn: linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 50%, #fbc2eb 100%);
+  --takeaway-border-serene-dawn: rgba(255, 255, 255, 0.4);
+  --takeaway-bg-mystic-ocean-radial: radial-gradient(circle at top right, #004e92aa, #000428bb);
+  --takeaway-bg-mystic-ocean-lines: repeating-linear-gradient(-45deg, transparent, transparent 5px, rgba(0, 78, 146, 0.1) 5px, rgba(0, 78, 146, 0.1) 10px);
+  --takeaway-border-mystic-ocean: rgba(173, 216, 230, 0.3);
+  --takeaway-border-celestial-kaaba: rgba(173, 216, 230, 0.4);
+  --takeaway-bg-golden-dome: linear-gradient(160deg, #ffc371 0%, #ff5f6d 100%);
+  --takeaway-border-golden-dome: rgba(255, 215, 0, 0.4);
+  --takeaway-bg-emerald-jannah: linear-gradient(45deg, #0f3a1e, #2c6e49);
+  --takeaway-border-emerald-jannah: rgba(212, 175, 55, 0.4);
+  --takeaway-bg-emerald-pattern: repeating-linear-gradient(45deg, rgba(212, 175, 55, 0.05), rgba(212, 175, 55, 0.05) 1px, transparent 1px, transparent 10px), repeating-linear-gradient(-45deg, rgba(212, 175, 55, 0.05), rgba(212, 175, 55, 0.05) 1px, transparent 1px, transparent 10px);
+  --takeaway-bg-divine-noor: radial-gradient(ellipse at top, #fffadd, #f7f2e9, #e9e0d2);
+  --takeaway-border-divine-noor: rgba(212, 175, 55, 0.3);
+  --takeaway-bg-majestic-throne: #020024;
+  --takeaway-border-majestic-throne: rgba(192, 192, 192, 0.4);
+  --takeaway-bg-liquid-metal: linear-gradient(45deg, #f8b195, #f67280, #c06c84, #6c5b7b, #355c7d, #99b898, #ffc371);
+  --takeaway-border-liquid-metal: rgba(255, 255, 255, 0.4);
+  --takeaway-bg-prismatic-base: radial-gradient(circle at 100% 100%, #f9d5e5, #c3aed6, #a8e6cf, #dcedc1);
+  --takeaway-bg-prismatic-dots: repeating-radial-gradient(circle at center, rgba(255,255,255,0.1), rgba(255,255,255,0.1) 1px, transparent 1px, transparent 4px);
+  --takeaway-border-prismatic-dots: rgba(255, 255, 255, 0.5);
+  --takeaway-bg-concentric-colors: conic-gradient(from 0.5turn at 50% 50%, #55efc4, #81ecec, #74b9ff, #a29bfe, #ffeaa7, #fab1a0, #ff7675, #fd79a8, #55efc4);
+  --takeaway-bg-concentric-lines: repeating-radial-gradient(circle at 50% 50%, rgba(0,0,0,0.05), rgba(0,0,0,0.05) 1px, transparent 1px, transparent 10px);
+  --takeaway-border-concentric-glow: rgba(255, 255, 255, 0.3);
+  --takeaway-bg-aura-haze: radial-gradient(ellipse at 10% 20%, hsla(34, 100%, 75%, 0.5), transparent 50%), radial-gradient(ellipse at 80% 30%, hsla(197, 100%, 63%, 0.5), transparent 50%), radial-gradient(ellipse at 30% 80%, hsla(330, 100%, 71%, 0.5), transparent 50%), radial-gradient(ellipse at 90% 90%, hsla(88, 57%, 62%, 0.5), transparent 50%);
+  --takeaway-border-aura-haze: rgba(255, 255, 255, 0.2);
+}
+
+
+/* --- Animations & Other styles --- */
+.takeaway-holographic-bg { background: var(--takeaway-holographic-bg-light); background-size: 400% 400%; animation: holographicShine 12s ease-in-out infinite; border: 1px solid var(--takeaway-holographic-border-light); }
+.takeaway-serene-dawn-bg { background: var(--takeaway-bg-serene-dawn); background-size: 200% 200%; animation: sereneDawnShift 15s ease-in-out infinite; border: 1px solid var(--takeaway-border-serene-dawn); }
+.takeaway-mystic-ocean-bg { background-image: var(--takeaway-bg-mystic-ocean-radial), var(--takeaway-bg-mystic-ocean-lines); background-size: cover, 20px 20px; background-position: center center, 0 0; animation: mysticOceanScroll 20s linear infinite; border: 1px solid var(--takeaway-border-mystic-ocean); }
+.takeaway-celestial-kaaba-bg { background-color: #090a0f; background-image: linear-gradient(-45deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0)), radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%); background-repeat: no-repeat, no-repeat; background-position: -200% -200%, center center; background-size: 50% 2px, cover; border: 1px solid var(--takeaway-border-celestial-kaaba); animation: celestialShootingStar 10s linear infinite 2s; position: relative; overflow: hidden; }
+.takeaway-celestial-kaaba-bg::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; background-image: radial-gradient(1px 1px at 10% 20%, white, rgba(255, 255, 255, 0)), radial-gradient(1px 1px at 80% 30%, white, rgba(255, 255, 255, 0)), radial-gradient(2px 2px at 50% 60%, white, rgba(255, 255, 255, 0)), radial-gradient(1px 1px at 30% 90%, white, rgba(255, 255, 255, 0)), radial-gradient(1px 1px at 90% 70%, white, rgba(255, 255, 255, 0)); animation: celestialTwinkle 15s linear infinite alternate; }
+.takeaway-golden-dome-bg { background: var(--takeaway-bg-golden-dome); border: 1px solid var(--takeaway-border-golden-dome); position: relative; overflow: hidden; }
+.takeaway-golden-dome-bg::after { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 60%); animation: goldenGlow 18s ease-in-out infinite; }
+.takeaway-emerald-jannah-bg { background-color: #1a4a31; background-image: var(--takeaway-bg-emerald-pattern), var(--takeaway-bg-emerald-jannah); background-size: 20px 20px, cover; border: 1px solid var(--takeaway-border-emerald-jannah); animation: emeraldGrowth 25s linear infinite; }
+.takeaway-divine-noor-bg { background: var(--takeaway-bg-divine-noor); border: 1px solid var(--takeaway-border-divine-noor); position: relative; overflow: hidden; }
+.takeaway-divine-noor-bg::before { content: ""; position: absolute; top: 0; left: 50%; width: 200%; height: 200%; background: linear-gradient(45deg, rgba(255, 255, 255, 0.3) 20%, transparent 45%, transparent 55%, rgba(255, 255, 255, 0.3) 80%); animation: noorRays 15s linear infinite; }
+.takeaway-majestic-throne-bg { background-color: var(--takeaway-bg-majestic-throne); border: 1px solid var(--takeaway-border-majestic-throne); position: relative; overflow: hidden; }
+.takeaway-majestic-throne-bg::before, .takeaway-majestic-throne-bg::after { content: ''; position: absolute; width: 200%; height: 200%; border-radius: 50%; }
+.takeaway-majestic-throne-bg::before { top: -50%; left: -50%; background: radial-gradient(circle, rgba(212, 175, 55, 0.5) 0%, rgba(2,0,36,0) 50%); animation: thronePulseGold 20s ease-in-out infinite; }
+.takeaway-majestic-throne-bg::after { bottom: -50%; right: -50%; background: radial-gradient(circle, rgba(192, 192, 192, 0.4) 0%, rgba(2,0,36,0) 50%); animation: thronePulseSilver 20s ease-in-out infinite 3s; }
+.takeaway-liquid-metal-bg { background: var(--takeaway-bg-liquid-metal); background-size: 300% 300%; animation: liquidMetalFlow 18s ease-in-out infinite alternate; border: 1px solid var(--takeaway-border-liquid-metal); }
+.takeaway-prismatic-dots-bg { background-image: var(--takeaway-bg-prismatic-dots), var(--takeaway-bg-prismatic-base); background-size: 4px 4px, 250% 250%; border: 1px solid var(--takeaway-border-prismatic-dots); animation: prismaticShimmer 15s ease-in-out infinite; }
+.takeaway-concentric-glow-bg { background-image: var(--takeaway-bg-concentric-lines), var(--takeaway-bg-concentric-colors); background-size: 100% 100%, 200% 200%; border: 1px solid var(--takeaway-border-concentric-glow); animation: concentricSpin 20s linear infinite; }
+.takeaway-aura-haze-bg { background: var(--takeaway-bg-aura-haze); background-color: var(--body-bg); background-blend-mode: screen; background-size: 200% 200%, 200% 200%, 200% 200%, 200% 200%; border: 1px solid var(--takeaway-border-aura-haze); animation: auraDrift 22s ease-in-out infinite; }
+
+@keyframes holographicShine { 0% { background-position: 0% 0%; } 25% { background-position: 100% 100%; } 50% { background-position: 0% 100%; } 75% { background-position: 100% 0%; } 100% { background-position: 0% 0%; } }
+@keyframes sereneDawnShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+@keyframes mysticOceanScroll { 0% { background-position: center center, 0 0; } 100% { background-position: center center, 20px 20px; } }
+@keyframes celestialShootingStar { 0% { background-position: -200% -200%, center center; } 100% { background-position: 200% 200%, center center; } }
+@keyframes celestialTwinkle { from { opacity: 0.5; } to { opacity: 1; } }
+@keyframes goldenGlow { 0% { transform: translate(-25%, -25%) rotate(0deg); } 50% { transform: translate(25%, 25%) rotate(180deg); } 100% { transform: translate(-25%, -25%) rotate(360deg); } }
+@keyframes emeraldGrowth { 0% { background-position: 0 0, 0 0; } 100% { background-position: 20px 20px, 0 0; } }
+@keyframes noorRays { 0% { transform: translateX(-50%) rotate(0deg); opacity: 0.5; } 50% { opacity: 1; } 100% { transform: translateX(-50%) rotate(360deg); opacity: 0.5; } }
+@keyframes thronePulseGold { 0%, 100% { transform: scale(0.8) translate(10%, 10%); opacity: 0.3; } 50% { transform: scale(1.1) translate(0, 0); opacity: 0.5; } }
+@keyframes thronePulseSilver { 0%, 100% { transform: scale(0.9) translate(-10%, -10%); opacity: 0.2; } 50% { transform: scale(1.2) translate(0, 0); opacity: 0.4; } }
+@keyframes liquidMetalFlow { 0% { background-position: 0% 0%; } 100% { background-position: 100% 100%; } }
+@keyframes prismaticShimmer { 0% { background-position: 0 0, 0% 50%; } 50% { background-position: 0 0, 100% 50%; } 100% { background-position: 0 0, 0% 50%; } }
+@keyframes concentricSpin { from { background-position: 0 0, 0% 0%; } to { background-position: 0 0, 200% 200%; } }
+@keyframes auraDrift { 0% { background-position: 0% 82%, 82% 12%, 18% 82%, 82% 88%; } 25% { background-position: 12% 2%, 92% 52%, 8% 12%, 12% 48%; } 50% { background-position: 88% 100%, 12% 88%, 88% 12%, 22% 8%; } 75% { background-position: 13% 67%, 42% 2%, 28% 42%, 42% 88%; } 100% { background-position: 0% 82%, 82% 12%, 18% 82%, 82% 88%; } }
+
+@keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+.shimmer-text::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent); animation: shimmer 3s infinite linear; }
+@keyframes pulse-right { 0%, 100% { transform: translateX(0) scale(1); opacity: 1; } 50% { transform: translateX(4px) scale(1.05); opacity: 0.8; } }
+.animate-pulse-right { animation: pulse-right 2.5s ease-in-out infinite; }
+
+@keyframes dragging-item-pulse { 0%, 100% { transform: scale(1.02); box-shadow: 0 0 15px rgba(0, 122, 255, 0.3); } 50% { transform: scale(1.03); box-shadow: 0 0 25px rgba(0, 122, 255, 0.5); } }
+.dragging-item { animation: dragging-item-pulse 1.5s ease-in-out infinite; opacity: 0.9; cursor: grabbing; }
+
+.prose code { color: inherit; } 
+html:not(.dark) .glass-secondary .prose code { background-color: rgba(0, 0, 0, 0.05) !important; }
+html.dark .glass-secondary .prose-invert code { background-color: rgba(255, 255, 255, 0.08) !important; }
+
+.custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: var(--scrollbar-track-bg); border-radius: 10px; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb-bg); border-radius: 10px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover-bg); }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.animate-fadeIn { animation: fadeIn 0.3s ease-out forwards; }
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+.animate-slideUp { animation: slideUp 0.3s ease-out forwards; }
+
+.quran-tutor-container { background: rgba(0,0,0,0.1); color: inherit; padding: 0.5rem; border-radius: 0.5rem; position: relative; padding-bottom: 70px; }
+.quran-tutor-content { max-height: 400px; overflow-y: auto; }
+html.dark .quran-tutor-container .ayah-item { border-bottom-color: rgba(255,255,255,0.15); }
+.quran-tutor-container .arabic-text { font-family: 'Amiri Quran', serif; font-size: 1.5rem; line-height: 2.8; color: inherit; }
+.quran-tutor-container .translation-text { font-family: 'Cormorant Garamond', serif; font-size: 1rem; font-style: italic; color: inherit; opacity: 0.9; }
+.quran-tutor-container .transliteration-text { font-family: 'Cormorant Garamond', serif; font-size: 0.9rem; font-style: normal; color: inherit; opacity: 0.7; }
+.bismillah-accented { fill: var(--accent-primary); }
+.quran-tutor-container .ayah-current-target { background-color: rgba(0, 122, 255, 0.1); border-radius: 8px; box-shadow: 0 0 20px rgba(0, 122, 255, 0.2); transition: background-color 0.3s ease, box-shadow 0.3s ease; }
+html.dark .quran-tutor-container .ayah-current-target { background-color: rgba(255, 215, 0, 0.15); box-shadow: 0 0 20px rgba(255, 215, 0, 0.25); }
+.quran-tutor-container .ayah-read-success { background-color: rgba(4, 120, 87, 0.15) !important; }
+.quran-tutor-controls { position: absolute; bottom: 0; left: 0; right: 0; border-top: 1px solid rgba(255,255,255,0.1); -webkit-backdrop-filter: blur(10px) saturate(150%); backdrop-filter: blur(10px) saturate(150%); background: rgba(0,0,0,0.3); border-bottom-left-radius: 0.5rem; border-bottom-right-radius: 0.5rem; }
+ html:not(.dark) .quran-tutor-controls { border-top: 1px solid rgba(0,0,0,0.1); background: rgba(255,255,255,0.3); }
+@keyframes mic-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); } 50% { box-shadow: 0 0 0 8px rgba(255, 0, 0, 0); } }
+.mic-listening { animation: mic-pulse 1.5s infinite; }
+
+/* Quran View Options Toggle Switch */
+.view-option-toggle { display: flex; align-items: center; cursor: pointer; }
+.view-option-toggle .toggle-switch { position: relative; display: inline-block; width: 34px; height: 20px; }
+.view-option-toggle .toggle-switch input { opacity: 0; width: 0; height: 0; }
+.view-option-toggle .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--scrollbar-thumb-bg); transition: .4s; border-radius: 20px; }
+.view-option-toggle .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+.view-option-toggle input:checked + .slider { background-color: var(--accent-primary); }
+.view-option-toggle input:checked + .slider:before { transform: translateX(14px); }
+
+.flipbook-container { perspective: 1200px; width: 100%; min-height: 350px; display: flex; justify-content: center; align-items: center; padding: 1rem 0; }
+.flipbook { width: 95%; height: 320px; position: relative; transform-style: preserve-3d; transition: transform 0.5s; }
+.flipbook-page { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; transform-origin: left; transition: transform 1s ease-in-out; display: flex; flex-direction: column; justify-content: space-between; padding: 1.25rem; border-radius: var(--card-border-radius); background-color: var(--body-bg); color: var(--text-primary); border: 1px solid var(--glass-border); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+.flipbook-page.flipped { transform: rotateY(-180deg); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); }
+.flipbook-page-content { overflow-y: auto; flex-grow: 1; font-family: 'Cormorant Garamond', serif; line-height: 1.6; }
+.flipbook-page-content h5 { font-size: 1.2rem; font-weight: 600; margin-bottom: 0.5rem; }
+.flipbook-page-content p { font-size: 1rem; margin-bottom: 0.75rem; }
+ .flipbook-page-content .source { font-size: 0.8rem; font-style: italic; opacity: 0.8; text-align: right; margin-top: 1rem; border-top: 1px solid var(--glass-border); padding-top: 0.5rem; }
+.flipbook-controls { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 0.5rem 0.25rem; margin-top: 0.5rem; }
+.flipbook-page-counter { font-size: 0.8rem; font-family: monospace; color: var(--text-secondary); }
+.progress-bar-container { height: 6px; background-color: var(--scrollbar-track-bg); border-radius: 3px; overflow: hidden; }
+.progress-bar { height: 100%; background-color: var(--accent-primary); transition: width 0.5s ease-in-out; }
+html[data-skin="noctis"] .progress-bar { background: var(--accent-gradient); }
+
+@keyframes skeleton-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+.skeleton-loader { animation: skeleton-pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite; background-color: rgba(128, 128, 128, 0.2); border-radius: 0.25rem; }
+@keyframes glow-pulse { 0% { box-shadow: 0 0 15px rgba(255, 215, 0, 0.2); } 100% { box-shadow: 0 0 25px 5px rgba(255, 215, 0, 0.4); } }
+html:not(.dark) .quran-scroll-container .ayah-highlight { animation-name: glow-pulse-light; }
+@keyframes glow-pulse-light { 0% { box-shadow: 0 0 15px rgba(0, 122, 255, 0.15); } 100% { box-shadow: 0 0 25px 5px rgba(0, 122, 255, 0.3); } }
+.mermaid-diagram-container svg { max-width: 100%; height: auto; }

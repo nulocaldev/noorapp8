@@ -1,22 +1,10 @@
-import React from 'react';
-import { IconProps } from '../../types';
 
-const ChevronUpIcon: React.FC<IconProps> = ({ size = 24, color = 'currentColor', className = '' }) => {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <path d="m18 15-6-6-6 6" />
-    </svg>
-  );
-};
+import React from 'react';
+
+const ChevronUpIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+  </svg>
+);
 
 export default ChevronUpIcon;

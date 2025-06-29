@@ -1,135 +1,100 @@
-// Content service for managing app content and data
 
-export interface ContentItem {
-  id: string;
-  title: string;
-  content: string;
-  category: string;
-  tags: string[];
-  createdAt: string;
-  updatedAt: string;
+import { QURAN_API_BASE, QURAN_TRANSLATION_ID, QURAN_TRANSLITERATION_ID } from '../constants';
+import { Surah, Ayah, AyahWithTranslation, Reciter, AudioFile, VerseTiming } from '../types';
+
+const handleApiError = async (response: Response, serviceName: string) => {
+    if (!response.ok) {
+        let errorBody = 'Could not read error body.';
+        try {
+            errorBody = await response.text();
+        } catch(e) {
+            // ignore
+        }
+        console.error(`[${serviceName}] API Error ${response.status}: ${response.statusText}`, errorBody);
+        throw new Error(`Failed to fetch from ${serviceName}: ${response.status} ${response.statusText}`);
+    }
+    return response.json();
+};
+
+const safeFetch = async (url: string, options: RequestInit, serviceName: string) => {
+    try {
+        const response = await fetch(url, options);
+        return handleApiError(response, serviceName);
+    } catch (error) {
+        console.error(`[${serviceName}] Network or parsing error for ${url}:`, error);
+        if (error instanceof Error) {
+            throw new Error(`Network error in ${serviceName}: ${error.message}`);
+        }
+        throw new Error(`An unknown network error occurred in ${serviceName}.`);
+    }
+};
+
+
+// --- Quran API Service ---
+
+export async function fetchSurahs(): Promise<Surah[]> {
+    const data = await safeFetch(`${QURAN_API_BASE}/chapters`, {}, 'quran.com/chapters');
+    return data.chapters;
 }
 
-export interface QuranVerse {
-  surah: number;
-  verse: number;
-  arabic: string;
-  translation: string;
-  transliteration?: string;
+export async function fetchSurah(surahNumber: number): Promise<Surah> {
+    const data = await safeFetch(`${QURAN_API_BASE}/chapters/${surahNumber}`, {}, `quran.com/chapters/${surahNumber}`);
+    return data.chapter;
 }
 
-export interface Hadith {
-  id: string;
-  narrator: string;
-  arabic: string;
-  translation: string;
-  source: string;
-  book: string;
-  chapter?: string;
-  number?: string;
+export async function fetchQuranPage(pageNumber: number): Promise<AyahWithTranslation[]> {
+    const url = `${QURAN_API_BASE}/verses/by_page/${pageNumber}?translations=${QURAN_TRANSLATION_ID},${QURAN_TRANSLITERATION_ID}&fields=text_uthmani`;
+    
+    const versesData = await safeFetch(url, {}, `quran.com/verses_and_translations_by_page/${pageNumber}`);
+
+    const versesFromApi: any[] = versesData.verses;
+
+    return versesFromApi.map(verse => {
+        const translationObj = verse.translations?.find((t: any) => t.resource_id === QURAN_TRANSLATION_ID);
+        const transliterationObj = verse.translations?.find((t: any) => t.resource_id === QURAN_TRANSLITERATION_ID);
+        
+        return {
+            id: verse.id,
+            verse_key: verse.verse_key,
+            text_uthmani: verse.text_uthmani,
+            translation: translationObj?.text || 'Translation not found.',
+            transliteration: transliterationObj ? transliterationObj.text.replace(/<[^>]+>/g, '') : undefined
+        };
+    });
 }
 
-export interface DuaItem {
-  id: string;
-  title: string;
-  arabic: string;
-  transliteration: string;
-  translation: string;
-  category: string;
-  occasion?: string;
+export async function fetchSurahWithTranslation(surahNumber: number): Promise<AyahWithTranslation[]> {
+    const versesUrl = `${QURAN_API_BASE}/quran/verses/uthmani?chapter_number=${surahNumber}`;
+    const translationUrl = `${QURAN_API_BASE}/quran/translations/${QURAN_TRANSLATION_ID}?chapter_number=${surahNumber}`;
+
+    const [versesData, translationData] = await Promise.all([
+        safeFetch(versesUrl, {}, 'quran.com/verses'),
+        safeFetch(translationUrl, {}, 'quran.com/translations')
+    ]);
+    
+    const verses: Ayah[] = versesData.verses;
+    const translations: { [verse_key: string]: string } = translationData.translations.reduce((acc: any, t: any) => {
+        acc[t.verse_key] = t.text;
+        return acc;
+    }, {});
+
+    return verses.map(verse => ({
+        ...verse,
+        translation: translations[verse.verse_key] || 'Translation not found.'
+    }));
 }
 
-class ContentService {
-  private baseUrl = '/api/content';
-
-  // Quran related methods
-  async getQuranVerse(surah: number, verse: number): Promise<QuranVerse | null> {
-    try {
-      // Mock implementation - replace with actual API call
-      return {
-        surah,
-        verse,
-        arabic: 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ',
-        translation: 'In the name of Allah, the Entirely Merciful, the Especially Merciful.',
-        transliteration: 'Bismillahi ar-Rahman ar-Raheem'
-      };
-    } catch (error) {
-      console.error('Error fetching Quran verse:', error);
-      return null;
-    }
-  }
-
-  async searchQuran(query: string): Promise<QuranVerse[]> {
-    try {
-      // Mock implementation
-      return [];
-    } catch (error) {
-      console.error('Error searching Quran:', error);
-      return [];
-    }
-  }
-
-  // Hadith related methods
-  async getRandomHadith(): Promise<Hadith | null> {
-    try {
-      // Mock implementation
-      return {
-        id: '1',
-        narrator: 'Abu Huraira',
-        arabic: 'إِنَّمَا الْأَعْمَالُ بِالنِّيَّاتِ',
-        translation: 'Actions are but by intention.',
-        source: 'Sahih Bukhari',
-        book: 'Book of Revelation',
-        number: '1'
-      };
-    } catch (error) {
-      console.error('Error fetching hadith:', error);
-      return null;
-    }
-  }
-
-  async searchHadith(query: string): Promise<Hadith[]> {
-    try {
-      // Mock implementation
-      return [];
-    } catch (error) {
-      console.error('Error searching hadith:', error);
-      return [];
-    }
-  }
-
-  // Dua related methods
-  async getDuasByCategory(category: string): Promise<DuaItem[]> {
-    try {
-      // Mock implementation
-      return [];
-    } catch (error) {
-      console.error('Error fetching duas:', error);
-      return [];
-    }
-  }
-
-  // Content management
-  async getContent(category?: string): Promise<ContentItem[]> {
-    try {
-      // Mock implementation
-      return [];
-    } catch (error) {
-      console.error('Error fetching content:', error);
-      return [];
-    }
-  }
-
-  async getContentById(id: string): Promise<ContentItem | null> {
-    try {
-      // Mock implementation
-      return null;
-    } catch (error) {
-      console.error('Error fetching content by ID:', error);
-      return null;
-    }
-  }
+export async function fetchReciters(): Promise<Reciter[]> {
+    const data = await safeFetch(`${QURAN_API_BASE}/resources/recitations?language=en`, {}, 'quran.com/recitations');
+    return data.recitations;
 }
 
-export const contentService = new ContentService();
-export default contentService;
+export async function fetchAudioFile(reciterId: number, surahNumber: number): Promise<AudioFile> {
+    const data = await safeFetch(`${QURAN_API_BASE}/recitations/${reciterId}/audio_files?chapter=${surahNumber}`, {}, 'quran.com/audio_files');
+    return data.audio_files[0];
+}
+
+export async function fetchAudioTimings(reciterId: number, surahNumber: number): Promise<VerseTiming[]> {
+    const data = await safeFetch(`${QURAN_API_BASE}/quran/recitations/${reciterId}/timed_text?verse_key=${surahNumber}:1-300`, {}, 'quran.com/timed_text');
+    return data.timed_text;
+}
