@@ -1,212 +1,260 @@
-import { GoogleGenAI, GenerateContentResponse, Content } from "@google/genai";
-export type { GoogleGenAI, GenerateContentResponse, Content };
+// Core type definitions for the MyNoor app
 
-export interface UserData {
-  age: string;
-  location: string; // Can be "City, Country" or "Approx. Lat: X, Lon: Y"
-  preferredLanguageCode: string; // e.g., 'en'
-  preferredLanguageName: string; // e.g., 'English'
-  hikmahPoints: number; 
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  preferredLanguage: string;
+  location?: {
+    latitude: number;
+    longitude: number;
+    city?: string;
+    country?: string;
+  };
+  preferences: {
+    notifications: boolean;
+    prayerReminders: boolean;
+    theme: 'light' | 'dark' | 'auto';
+    fontSize: 'small' | 'medium' | 'large';
+  };
+  createdAt: string;
+  lastActiveAt: string;
 }
-
-export enum MessageSender {
-  USER = 'user',
-  AI = 'ai',
-  SYSTEM = 'system',
-}
-
-export interface SponsorLink {
-  linkType?: 'visit' | 'call' | 'follow';
-  linkUrl?: string;
-}
-
-export interface ShareableTakeaway {
-  text: string;
-}
-
-// For AI-suggested interactive activities
-export interface InteractiveActivitySuggestion {
-  type: 'quiz' | 'khitmah_reader' | 'flip_book_reader' | 'word_search' | 'hadith_explorer'; // Expanded activity types
-  topic: string; // e.g., "Pillars of Islam", "Quran Khitmah", "Patience"
-  displayText: string; // The text AI suggests for the button
-}
-
-// State for an inline quiz within a message
-export interface InlineQuizState {
-  status: 'idle' | 'loading' | 'playing' | 'submitting' | 'error' | 'completed';
-  quizData: QuizData | null;
-  currentQuestionIndex: number;
-  selectedAnswers: Record<number, number | null>; // questionIndex: selectedOptionIndex
-  score?: number; // Calculated upon completion
-  errorMsg?: string;
-}
-
-// State for inline Quran Khitmah Reader
-export interface InlineKhitmahReaderState {
-    status: 'loading' | 'ready' | 'error';
-    pageData: {
-        pageNumber: number;
-        verses: AyahWithTranslation[];
-    } | null;
-    bookmarkedVerseKeys: string[]; // New: To track bookmarks on the current page
-    errorMsg?: string;
-}
-
-
-// State for inline Flip Book Reader
-export interface InlineFlipBookState {
-    status: 'loading' | 'ready' | 'error';
-    bookData: FlipBookData | null;
-    currentPageIndex: number;
-    errorMsg?: string;
-}
-
-
-// State for inline Word Search Game
-export interface InlineWordSearchState {
-  status: 'loading' | 'playing' | 'error' | 'completed';
-  wordSearchData: WordSearchData | null;
-  foundWords: string[];
-  currentSelection: { row: number, col: number }[]; // Path of currently selected letters
-  errorMsg?: string;
-  startTime: number | null; // Timestamp when the game starts
-  elapsedTime: number; // in seconds
-}
-
-// State for inline Hadith Explorer
-export interface InlineHadithExplorerState {
-    status: 'loading' | 'ready' | 'error';
-    bookData: FlipBookData | null;
-    currentPageIndex: number;
-    bookmarkedPageIndexes: number[];
-    errorMsg?: string;
-}
-
-export type SponsorTier = 'Gold' | 'Silver' | 'Bronze';
 
 export interface ChatMessage {
   id: string;
-  text: string;
-  sender: MessageSender;
-  timestamp: Date;
-  suggestions?: string[];
-  sponsorAttribution?: {
-    sponsorId: string;
-    sponsorName: string;
-    tier: SponsorTier;
-    link: SponsorLink;
+  content: string;
+  role: 'user' | 'assistant';
+  timestamp: string;
+  metadata?: {
+    suggestions?: string[];
+    shareableContent?: string;
+    activitySuggestion?: ActivitySuggestion;
   };
-  copyableContent?: { 
-    content: string;
-  };
-  shareableTakeaway?: ShareableTakeaway;
-  activitySuggestion?: InteractiveActivitySuggestion;
-  inlineQuizState?: InlineQuizState | null;
-  inlineKhitmahReaderState?: InlineKhitmahReaderState | null;
-  inlineFlipBookState?: InlineFlipBookState | null;
-  inlineWordSearchState?: InlineWordSearchState | null;
-  inlineHadithExplorerState?: InlineHadithExplorerState | null;
-  unlockedAchievementCard?: UnlockedAchievementCard;
 }
 
-export interface SponsorApplication extends SponsorLink {
-  id:string;
+export interface ActivitySuggestion {
+  type: 'quiz' | 'khitmah_reader' | 'flip_book_reader' | 'word_search' | 'hadith_explorer';
+  topic: string;
+  description: string;
+}
+
+export interface PrayerTime {
+  name: string;
+  time: string;
+  isNext?: boolean;
+}
+
+export interface PrayerTimesData {
+  date: string;
+  location: string;
+  times: PrayerTime[];
+  nextPrayer?: {
+    name: string;
+    time: string;
+    timeUntil: string;
+  };
+}
+
+export interface QuranVerse {
+  surah: number;
+  verse: number;
+  arabic: string;
+  translation: string;
+  transliteration?: string;
+  surahName?: string;
+}
+
+export interface Hadith {
+  id: string;
+  narrator: string;
+  arabic: string;
+  translation: string;
+  source: string;
+  book: string;
+  chapter?: string;
+  number?: string;
+  tags?: string[];
+}
+
+export interface DuaItem {
+  id: string;
+  title: string;
+  arabic: string;
+  transliteration: string;
+  translation: string;
+  category: string;
+  occasion?: string;
+  benefits?: string[];
+}
+
+export interface IslamicEvent {
+  id: string;
+  name: string;
+  date: string;
+  type: 'holiday' | 'observance' | 'historical';
+  description: string;
+  significance?: string;
+}
+
+export interface AppSettings {
+  theme: 'light' | 'dark' | 'auto';
+  language: string;
+  fontSize: 'small' | 'medium' | 'large';
+  notifications: {
+    enabled: boolean;
+    prayerReminders: boolean;
+    dailyReminders: boolean;
+    islamicEvents: boolean;
+  };
+  privacy: {
+    shareLocation: boolean;
+    shareUsageData: boolean;
+  };
+}
+
+export interface QuizQuestion {
+  id: string;
+  question: string;
+  options: string[];
+  correctAnswer: number;
+  explanation?: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+  category: string;
+}
+
+export interface QuizResult {
+  score: number;
+  totalQuestions: number;
+  timeSpent: number;
+  answers: {
+    questionId: string;
+    selectedAnswer: number;
+    isCorrect: boolean;
+  }[];
+}
+
+export interface WordSearchGame {
+  id: string;
+  title: string;
+  grid: string[][];
+  words: {
+    word: string;
+    found: boolean;
+    positions?: { row: number; col: number }[];
+  }[];
+  difficulty: 'easy' | 'medium' | 'hard';
+}
+
+export interface FlipBookPage {
+  id: string;
+  content: string;
+  imageUrl?: string;
+  audioUrl?: string;
+}
+
+export interface FlipBook {
+  id: string;
+  title: string;
+  description: string;
+  pages: FlipBookPage[];
+  category: string;
+  ageGroup: string;
+}
+
+export interface Achievement {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  points: number;
+  unlockedAt?: string;
+  progress?: {
+    current: number;
+    target: number;
+  };
+}
+
+export interface UserProgress {
+  totalPoints: number;
+  level: number;
+  achievements: Achievement[];
+  streaks: {
+    daily: number;
+    prayer: number;
+    reading: number;
+  };
+  activities: {
+    quizzesCompleted: number;
+    booksRead: number;
+    prayersTracked: number;
+    conversationsHad: number;
+  };
+}
+
+// Sponsor and Admin types
+export interface SponsorApplication {
+  id: string;
   companyName: string;
   contactEmail: string;
-  status: 'pending' | 'approved' | 'rejected';
+  businessType: 'local' | 'online';
+  businessCategory: string;
+  linkType: 'visit' | 'call' | 'email';
+  linkUrl: string;
+  isGlobal: boolean;
+  radiusKm?: number;
   detectedLat?: number;
   detectedLon?: number;
-  radiusKm: number; 
-  isGlobal: boolean;  
-  businessType: 'local' | 'online';
-  businessCategory: string; // New field
+  tier: SponsorTier;
+  status: 'pending' | 'approved' | 'rejected';
+  submittedAt: string;
+  reviewedAt?: string;
+  reviewNotes?: string;
 }
 
-export type ApprovedSponsor = Omit<SponsorApplication, 'status' | 'radiusKm' | 'isGlobal' | 'businessType'> & {
-  status: 'approved';
-  tier: SponsorTier;
-  radiusKm: number;
-  isGlobal: boolean;
-  businessType: 'local' | 'online';
-  businessCategory: string; // New field
-  detectedLat?: number; 
-  detectedLon?: number;
-  linkType?: 'visit' | 'call' | 'follow';
-  linkUrl?: string;
+export interface ApprovedSponsor {
+  id: string;
   companyName: string;
   contactEmail: string;
-  id: string;
-  startDate: string; 
+  linkType: 'visit' | 'call' | 'email';
+  linkUrl: string;
+  isGlobal: boolean;
+  businessType: 'local' | 'online';
+  businessCategory: string;
+  tier: SponsorTier;
+  radiusKm: number;
+  detectedLat?: number;
+  detectedLon?: number;
+  status: 'approved';
+  startDate: string;
   durationDays: number;
-  endDate: string; 
-  clickCount: number; 
-};
-
-export interface ManagedUrlConfig {
-  slug: string;         
-  targetUrl: string;    
+  endDate: string;
+  clickCount: number;
 }
 
-export interface ChatSessionState {
-  totalAiMessagesSentInSession: number;
-  lastDisplayedSponsorIndex: number;
-}
-
-export interface ChatSession {
-  id: string;
-  name: string; 
-  createdAt: Date;
-  lastActivityAt: Date; 
-  messages: ChatMessage[];
-  sessionState: ChatSessionState; 
-}
-
-export interface UnlockedWisdomCard {
-  id: string; 
-  originalMessageId: string; 
-  takeaway: ShareableTakeaway;
-  timestamp: Date; 
-  chatSessionId: string; 
-}
-
-// New type for bookmarked Hadith
-export interface BookmarkedHadith {
-    id: string; // e.g., hadith-msgId-pageIndex
-    originalMessageId: string;
-    chatSessionId: string;
-    title: string;
-    content: string;
-    source: string;
-    timestamp: Date;
-}
-
-// New type for bookmarked Ayah
-export interface BookmarkedAyah {
-    id: string; // e.g., ayah-1:7
-    verse_key: string;
-    text_uthmani: string;
-    translation: string;
-    pageNumber: number;
-    timestamp: Date;
-    chatSessionId: string;
-    originalMessageId: string;
-}
-
-
-export type CardBackgroundType = 'css' | 'image' | 'lottie';
-export type CardTier = 'Common' | 'Uncommon' | 'Rare' | 'Epic' | 'Legendary';
+export type SponsorTier = 'Gold' | 'Silver' | 'Bronze';
 
 export interface CardBackground {
   id: string;
   name: string;
   cost: number;
-  description: string;
-  type: CardBackgroundType;
-  tier: CardTier;
-  // Make properties optional to support different types
+  type: 'css' | 'image';
   cssClass?: string;
-  imageUrl?: string; // For type 'image', stores a Data URL or path
-  lottieUrl?: string; // For type 'lottie', stores a Data URL or path
+  imageUrl?: string;
+  tier: 'Common' | 'Uncommon' | 'Rare' | 'Epic' | 'Legendary';
+  description: string;
+  limit: number | null;
+  unlockCount: number;
+}
+
+export interface BrandingAssets {
+  id: string;
+  name: string;
+  cost: number;
+  type: 'logo' | 'watermark' | 'border';
+  imageUrl: string;
+  tier: 'Common' | 'Uncommon' | 'Rare' | 'Epic' | 'Legendary';
+  description: string;
   limit: number | null;
   unlockCount: number;
 }
@@ -214,163 +262,143 @@ export interface CardBackground {
 export interface CardBackgroundPack {
   id: string;
   name: string;
-  description: string;
   cost: number;
-  coverImageUrl: string; // data URL
-  backgroundIds: string[]; // array of CardBackground ids
+  backgrounds: string[]; // Array of CardBackground IDs
+  tier: 'Common' | 'Uncommon' | 'Rare' | 'Epic' | 'Legendary';
+  description: string;
   limit: number | null;
   unlockCount: number;
 }
 
-export type UnlockedPackIds = string[];
+// API Response types
+export interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
+}
 
+export interface PaginatedResponse<T> {
+  data: T[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
 
-// For Quiz Activity
-export interface QuizOption {
+// Error types
+export interface AppError {
+  code: string;
+  message: string;
+  details?: any;
+}
+
+// Navigation types
+export interface NavigationItem {
+  id: string;
+  label: string;
+  icon: string;
+  path: string;
+  badge?: number;
+}
+
+// Theme types
+export interface ThemeColors {
+  primary: string;
+  secondary: string;
+  accent: string;
+  background: string;
+  surface: string;
   text: string;
-  image_url?: string; // Optional image for the option
+  textSecondary: string;
+  border: string;
+  success: string;
+  warning: string;
+  error: string;
 }
 
-export interface QuizQuestion {
-  text: string;
-  image_url?: string; // Optional image for the question itself
-  options: [QuizOption, QuizOption, QuizOption]; // Exactly 3 options, each an object
-  correctAnswerIndex: 0 | 1 | 2;
+export interface Theme {
+  name: string;
+  colors: ThemeColors;
+  fonts: {
+    primary: string;
+    secondary: string;
+    arabic: string;
+  };
 }
 
-export interface QuizData {
-  title: string;
-  questions: QuizQuestion[];
+// Utility types
+export type LoadingState = 'idle' | 'loading' | 'success' | 'error';
+export type Language = 'en' | 'ar' | 'es' | 'fr' | 'ur' | 'id';
+export type Direction = 'ltr' | 'rtl';
+
+// Component prop types
+export interface BaseComponentProps {
+  className?: string;
+  children?: React.ReactNode;
 }
 
-// For Word Search Activity
-export interface WordSearchSolution {
-    word: string;
-    start: { row: number; col: number };
-    direction: 'horizontal' | 'vertical' | 'diagonal_down_right' | 'diagonal_up_right' | 'horizontal_reverse' | 'vertical_reverse' | 'diagonal_down_left' | 'diagonal_up_left';
+export interface IconProps extends BaseComponentProps {
+  size?: number;
+  color?: string;
 }
 
-export interface WordSearchData {
-    title: string;
-    grid: string[][];
-    words: string[];
-    solutions: WordSearchSolution[];
+export interface ButtonProps extends BaseComponentProps {
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
+  size?: 'sm' | 'md' | 'lg';
+  disabled?: boolean;
+  loading?: boolean;
+  onClick?: () => void;
 }
 
-// For Flip Book Reader
-export interface FlipBookPage {
-    title: string;
-    content: string; // Main text of the page (e.g., Hadith)
-    source: string;  // Source citation
+export interface ModalProps extends BaseComponentProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title?: string;
+  size?: 'sm' | 'md' | 'lg' | 'xl';
 }
 
-export interface FlipBookData {
-    title: string;
-    introduction: string;
-    pages: FlipBookPage[];
+// Form types
+export interface FormField {
+  name: string;
+  label: string;
+  type: 'text' | 'email' | 'password' | 'select' | 'textarea' | 'checkbox';
+  required?: boolean;
+  placeholder?: string;
+  options?: { value: string; label: string }[];
+  validation?: {
+    pattern?: RegExp;
+    minLength?: number;
+    maxLength?: number;
+    custom?: (value: any) => string | null;
+  };
 }
 
-
-// For Unlocked Achievement Cards
-export interface UnlockedAchievementCard {
-  id: string; // Unique ID for this achievement instance
-  activityType: string; // e.g., 'quiz'
-  activityTitle: string; // Specific title of the quiz/activity e.g. "Introduction to Islamic History"
-  activityTopic: string; // The broader topic, e.g., "Islamic History"
-  originalSuggestionText: string; // The text of the button user clicked to start
-  score: number;
-  maxScore: number;
-  pointsEarned: number;
-  timestamp: Date;
-  timeTakenSeconds?: number; // Optional: Time taken for timed activities
+export interface FormData {
+  [key: string]: any;
 }
 
-// For Daily Reflection Cards
-export interface ReflectionCard {
-  id: string; // Unique ID, e.g., "reflection-YYYY-MM-DD"
-  date: string; // YYYY-MM-DD format, the day being reflected upon
-  content: string; // The AI-generated reflection text
-  timestamp: Date; // When this reflection was generated or last updated
+export interface FormErrors {
+  [key: string]: string;
 }
 
-// For top-level progress tracking for widgets
-export interface KhitmahProgress {
-  currentPageNumber: number;
+// Analytics types
+export interface AnalyticsEvent {
+  name: string;
+  properties?: Record<string, any>;
+  timestamp: string;
 }
 
-
-export interface HadithProgress {
-  collectionName: string;
-  bookName: string;
-  hadithNumber: number;
-  totalHadithsInBook: number;
-}
-
-
-// Types for API content
-export interface Surah {
-  id: number;
-  revelation_place: string;
-  revelation_order: number;
-  name_simple: string;
-  name_arabic: string;
-  verses_count: number;
-}
-
-export interface Ayah {
-  id: number;
-  verse_key: string; // e.g., "1:1"
-  text_uthmani: string;
-}
-
-export interface AyahWithTranslation extends Ayah {
-  translation: string;
-  transliteration?: string;
-}
-
-
-// Types for Quran Audio Player (DEPRECATED but kept for reference if needed)
-export interface Reciter {
-    id: number;
-    name: string;
-    style: string;
-    translated_name: {
-        name: string;
-        language_name: string;
-    };
-}
-
-export interface AudioFile {
-    url: string;
-    duration: number;
-    format: string;
-}
-
-export interface VerseTiming {
-    verse_key: string;
-    timestamp_from: number;
-    timestamp_to: number;
-}
-
-// New Types for Skinning/Theming
-export type AppSkin = 'default' | 'noctis';
-
-// New types for admin customization
-export type ThemeOverrides = Record<string, string>;
-
-export interface BehaviorOverrides {
-  pointsPerAiMessage: number;
-  pointsPerActivityCompletedBase: number;
-  pointsPerQuizCorrectAnswer: number;
-  pointsPerWordFound: number;
-  pointsPerReflectionGenerated: number;
-  pointsPerKhitmahPageRead: number;
-  pointsPerHadithRead: number;
-  pointsPerFlipbookPageTurned: number;
-}
-
-// New type for Branding Assets
-export interface BrandingAssets {
-  splashLogo: string; // data URL
-  formLogo: string; // data URL
+export interface UserAnalytics {
+  userId: string;
+  sessionId: string;
+  events: AnalyticsEvent[];
+  metadata: {
+    userAgent: string;
+    platform: string;
+    language: string;
+    timezone: string;
+  };
 }
