@@ -26,7 +26,7 @@ import {
 import { extractSpecialContent } from './utils/aiUtils';
 import { isLocationMatch } from './utils/locationUtils';
 import { calculateEndDate, isSponsorshipActive, formatDateForDisplay } from './utils/dateUtils';
-import { PrayerTimesProvider, usePrayerTimes } from './contexts/PrayerTimesContext';
+import { PrayerTimesProvider } from './contexts/PrayerTimesContext';
 
 import UserDataForm from './components/UserDataForm';
 import ChatInterface from './components/ChatInterface';
@@ -34,12 +34,11 @@ import NavigationBar, { AppView } from './components/NavigationBar';
 import SponsorApplicationForm from './components/SponsorApplicationForm';
 import AdminDashboard from './components/AdminDashboard';
 import AdminLogin from './components/AdminLogin';
-import ShareScreen from './components/ShareScreen';
 import ChatListSidebar from './components/ChatListSidebar';
 import LanguageSelectionModal from './components/LanguageSelectionModal';
 import HikmahGallery from './components/HikmahGallery';
-import InteractiveActivityModal from './components/InteractiveActivityModal';
-import PrayerReminderPopup from './components/PrayerReminderPopup';
+// import InteractiveActivityModal from './components/InteractiveActivityModal';
+// import PrayerReminderPopup from './components/PrayerReminderPopup';
 import SplashScreen from './components/SplashScreen';
 
 export type Theme = 'light' | 'dark' | 'auto';
@@ -100,7 +99,7 @@ const AppContent: React.FC<AppContentProps> = ({ userData, setUserData, onUserDa
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   const [currentChatSessionId, setCurrentChatSessionId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+  const [, setError] = useState<string | null>(null);
   const [currentView, setCurrentView] = useState<AppView>('userDataForm');
   
   const [pendingSponsorApplications, setPendingSponsorApplications] = useState<SponsorApplication[]>([]);
@@ -141,7 +140,9 @@ const AppContent: React.FC<AppContentProps> = ({ userData, setUserData, onUserDa
   const [hadithProgress, setHadithProgress] = useState<HadithProgress | null>(() => safeLoadFromLocalStorage(HADITH_PROGRESS_KEY, null));
   
   const [isRateLimited, setIsRateLimited] = useState<boolean>(false);
-  const { prayerAlert, clearPrayerAlert } = usePrayerTimes();
+  // const { prayerAlert, clearPrayerAlert } = usePrayerTimes();
+  const prayerAlert = null;
+  const clearPrayerAlert = () => {};
   
   const [isAppInitialized, setIsAppInitialized] = useState<boolean>(false);
 
@@ -918,204 +919,47 @@ const AppContent: React.FC<AppContentProps> = ({ userData, setUserData, onUserDa
 
   const currentSession = chatSessions.find(s => s.id === currentChatSessionId);
 
-  if (!isAppInitialized && userData) {
-    return <SplashScreen logo={brandingAssets.splashLogo} />;
-  }
+  if (!isAppInitialized && userData) return <SplashScreen isVisible={true} />;
 
   const mainContent = () => {
-    switch (currentView) {
-      case 'userDataForm':
-        return (
-          <UserDataForm 
-            onSubmit={onUserDataSubmit} 
-            isInitializing={isInitializingChat}
-            formLogo={brandingAssets.formLogo}
-          />
-        );
-      case 'chat':
-        return currentSession && userData ? (
-          <ChatInterface
-            messages={currentSession.messages}
-            onSendMessage={handleSendMessage}
-            isLoadingAIResponse={isLoading}
-            isRateLimited={isRateLimited}
-            userData={userData}
-            chatSessionName={currentSession.name}
-            theme={theme}
-            onStartActivity={handleStartActivity}
-            onInlineQuizInteraction={handleInlineQuizInteraction}
-            onKhitmahInteraction={handleKhitmahInteraction}
-            onHadithInteraction={handleHadithExplorerInteraction}
-            onFlipBookInteraction={handleFlipBookInteraction}
-            onInlineWordSearchInteraction={handleInlineWordSearchInteraction}
-            onSponsorLinkClick={handleSponsorLinkClick}
-          />
-        ) : (
-          <div className="flex items-center justify-center h-full text-theme-secondary">
-            Select or start a new chat.
-          </div>
-        );
-      case 'sponsorApplication':
-        return (
-          <SponsorApplicationForm
-            onSubmit={handleSponsorApplicationSubmit}
-            onCancel={() => setCurrentView('chat')}
-          />
-        );
-      case 'adminLogin':
-        return (
-          <AdminLogin
-            onLoginSuccess={handleAdminLogin}
-            onCancel={() => window.location.search = ''}
-            adminEmail={ADMIN_EMAIL}
-            adminPassword={ADMIN_PASSWORD}
-          />
-        );
-      case 'adminDashboard':
-        return (
-          <AdminDashboard
-            pendingApplications={pendingSponsorApplications}
-            approvedSponsors={approvedSponsors}
-            onApproveApplication={handleApproveApplication}
-            onRejectApplication={handleRejectApplication}
-            onUpdateApprovedSponsor={handleUpdateSponsor}
-            onDeleteApprovedSponsor={handleDeleteSponsor}
-            managedUrlConfig={managedUrlConfig}
-            onUpdateManagedUrl={setManagedUrlConfig}
-            cardBackgrounds={cardBackgrounds}
-            onUpdateCardBackgrounds={handleUpdateCardBackgrounds}
-            cardBackgroundPacks={cardBackgroundPacks}
-            onUpdateCardBackgroundPacks={handleUpdateCardBackgroundPacks}
-            skin={skin}
-            onUpdateSkin={setSkin}
-            themeOverrides={themeOverrides}
-            onUpdateThemeOverrides={handleUpdateThemeOverrides}
-            behaviorOverrides={behaviorOverrides}
-            onUpdateBehaviorOverrides={handleUpdateBehaviorOverrides}
-            systemPrompt={customSystemPrompt}
-            onUpdateSystemPrompt={handleUpdateSystemPrompt}
-            brandingAssets={brandingAssets}
-            onUpdateBrandingAssets={setBrandingAssets}
-          />
-        );
-      case 'hikmahGallery':
-        return userData ? (
-          <HikmahGallery
-            unlockedWisdomCards={unlockedWisdomCards}
-            cardBackgrounds={cardBackgrounds}
-            cardBackgroundPacks={cardBackgroundPacks}
-            unlockedCardBackgroundIds={unlockedCardBackgroundIds}
-            unlockedPackIds={unlockedPackIds}
-            onUnlockBackground={handleUnlockBackground}
-            onUnlockPack={handleUnlockPack}
-            unlockedAchievementCards={unlockedAchievementCards}
-            unlockedActivityBackgroundIds={unlockedActivityBackgroundIds}
-            onUnlockActivityBackground={handleUnlockBackground}
-            unlockedReflectionCards={unlockedReflectionCards}
-            onGenerateReflection={handleGenerateReflection}
-            isLoadingReflection={isLoadingReflection}
-            reflectionError={reflectionError}
-            bookmarkedHadiths={bookmarkedHadiths}
-            bookmarkedAyahs={bookmarkedAyahs}
-            hikmahPoints={userData.hikmahPoints}
-            managedUrlConfig={managedUrlConfig}
-          />
-        ) : null;
-      default:
-        return (
-          <UserDataForm 
-            onSubmit={onUserDataSubmit} 
-            isInitializing={isInitializingChat}
-            formLogo={brandingAssets.formLogo}
-          />
-        );
-    }
+      switch (currentView) {
+          case 'userDataForm': return <UserDataForm onSubmit={onUserDataSubmit} isInitializing={isInitializingChat} formLogo={brandingAssets.formLogo} />;
+          case 'chat': return currentSession && userData ? <ChatInterface messages={currentSession.messages} onSendMessage={handleSendMessage} isLoadingAIResponse={isLoading} isRateLimited={isRateLimited} userData={userData} chatSessionName={currentSession.name} theme={theme} onStartActivity={handleStartActivity} onInlineQuizInteraction={handleInlineQuizInteraction} onKhitmahInteraction={handleKhitmahInteraction} onHadithInteraction={handleHadithExplorerInteraction} onFlipBookInteraction={handleFlipBookInteraction} onInlineWordSearchInteraction={handleInlineWordSearchInteraction} onSponsorLinkClick={handleSponsorLinkClick} /> : <div className="flex items-center justify-center h-full text-theme-secondary">Select or start a new chat.</div>;
+          case 'sponsorApplication': return <SponsorApplicationForm onSubmit={handleSponsorApplicationSubmit} onCancel={() => setCurrentView('chat')} />;
+          case 'adminLogin': return <AdminLogin onLogin={(email, password) => { if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) handleAdminLogin(); }} />;
+          case 'adminDashboard': return <AdminDashboard pendingApplications={pendingSponsorApplications} approvedSponsors={approvedSponsors} onApproveApplication={handleApproveApplication} onRejectApplication={handleRejectApplication} onUpdateApprovedSponsor={handleUpdateSponsor} onDeleteApprovedSponsor={handleDeleteSponsor} managedUrlConfig={managedUrlConfig} onUpdateManagedUrl={setManagedUrlConfig} cardBackgrounds={cardBackgrounds} onUpdateCardBackgrounds={handleUpdateCardBackgrounds} cardBackgroundPacks={cardBackgroundPacks} onUpdateCardBackgroundPacks={handleUpdateCardBackgroundPacks} skin={skin} onUpdateSkin={setSkin} themeOverrides={themeOverrides} onUpdateThemeOverrides={handleUpdateThemeOverrides} behaviorOverrides={behaviorOverrides} onUpdateBehaviorOverrides={handleUpdateBehaviorOverrides} systemPrompt={customSystemPrompt} onUpdateSystemPrompt={handleUpdateSystemPrompt} brandingAssets={brandingAssets} onUpdateBrandingAssets={setBrandingAssets}/>;
+          case 'hikmahGallery': return userData ? <HikmahGallery unlockedWisdomCards={unlockedWisdomCards} cardBackgrounds={cardBackgrounds} cardBackgroundPacks={cardBackgroundPacks} unlockedCardBackgroundIds={unlockedCardBackgroundIds} unlockedPackIds={unlockedPackIds} onUnlockBackground={handleUnlockBackground} onUnlockPack={handleUnlockPack} unlockedAchievementCards={unlockedAchievementCards} unlockedActivityBackgroundIds={unlockedActivityBackgroundIds} onUnlockActivityBackground={handleUnlockBackground} unlockedReflectionCards={unlockedReflectionCards} onGenerateReflection={handleGenerateReflection} isLoadingReflection={isLoadingReflection} reflectionError={reflectionError} bookmarkedHadiths={bookmarkedHadiths} bookmarkedAyahs={bookmarkedAyahs} hikmahPoints={userData.hikmahPoints} managedUrlConfig={managedUrlConfig} /> : null;
+          default: return <UserDataForm onSubmit={onUserDataSubmit} isInitializing={isInitializingChat} formLogo={brandingAssets.formLogo} />;
+      }
   };
 
   if (!userData && !['adminLogin', 'adminDashboard', 'sponsorApplication'].includes(currentView)) {
-    return (
-      <UserDataForm 
-        onSubmit={onUserDataSubmit} 
-        isInitializing={isInitializingChat}
-        formLogo={brandingAssets.formLogo}
-      />
-    );
+    return <UserDataForm onSubmit={onUserDataSubmit} isInitializing={isInitializingChat} formLogo={brandingAssets.formLogo} />;
   }
-
+  
   return (
-    <div className="flex h-screen overflow-hidden bg-body text-theme-primary">
-      {currentView !== 'userDataForm' && currentView !== 'adminLogin' && (
-        <ChatListSidebar
-          isOpen={isSidebarOpen}
-          chatSessions={chatSessions}
-          currentSessionId={currentChatSessionId}
-          onSwitchSession={handleSwitchSession}
-          onNewSession={() => handleStartNewChat(userData!)}
-          onRenameSession={handleRenameSession}
-          onDeleteSession={handleDeleteSession}
-          onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
-          userData={userData!}
-          khitmahProgress={khitmahProgress}
-          hadithProgress={hadithProgress}
-          onContinueReading={handleContinueReading}
-          bookmarkedHadithsCount={bookmarkedHadiths.length}
-        />
-      )}
-      
-      <div className="flex-grow flex flex-col relative">
-        {currentView !== 'userDataForm' && (
-          <NavigationBar
-            currentView={currentView}
-            onNavigate={handleNavigation}
-            hasPendingSponsorApplications={pendingSponsorApplications.length > 0}
-            isAdminAuthenticated={isAdminAuthenticated}
-            showMenuButton={currentView === 'chat'}
-            onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
-            isSidebarOpen={isSidebarOpen}
-            onOpenLanguageModal={() => setShowLanguageModal(true)}
-            currentTheme={theme}
-            onChangeTheme={setTheme}
-            userDataAvailable={!!userData}
-          />
-        )}
-        
-        <main className="flex-grow overflow-y-auto custom-scrollbar">
-          {mainContent()}
-        </main>
+      <div className="flex h-screen overflow-hidden bg-body text-theme-primary">
+          {currentView !== 'userDataForm' && currentView !== 'adminLogin' && (
+              <ChatListSidebar isOpen={isSidebarOpen} chatSessions={chatSessions} currentSessionId={currentChatSessionId} onSwitchSession={handleSwitchSession} onNewSession={() => handleStartNewChat(userData!)} onRenameSession={handleRenameSession} onDeleteSession={handleDeleteSession} onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} userData={userData!} khitmahProgress={khitmahProgress} hadithProgress={hadithProgress} onContinueReading={handleContinueReading} bookmarkedHadithsCount={bookmarkedHadiths.length} />
+          )}
+          <div className="flex-grow flex flex-col relative">
+               {currentView !== 'userDataForm' && (
+                  <NavigationBar currentView={currentView} onNavigate={handleNavigation} hasPendingSponsorApplications={pendingSponsorApplications.length > 0} isAdminAuthenticated={isAdminAuthenticated} showMenuButton={currentView === 'chat'} onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} isSidebarOpen={isSidebarOpen} onOpenLanguageModal={() => setShowLanguageModal(true)} currentTheme={theme} onChangeTheme={setTheme} userDataAvailable={!!userData} />
+               )}
+              <main className="flex-grow overflow-y-auto custom-scrollbar">
+                  {mainContent()}
+              </main>
+          </div>
+          {showLanguageModal && userData && (
+              <LanguageSelectionModal isOpen={showLanguageModal} currentLanguageCode={userData.preferredLanguageCode} onSelectLanguage={handleLanguageChange} onClose={() => setShowLanguageModal(false)} />
+          )}
+          {/* {prayerAlert && <PrayerReminderPopup alert={prayerAlert} onClose={clearPrayerAlert} />} */}
       </div>
-
-      {showLanguageModal && userData && (
-        <LanguageSelectionModal
-          isOpen={showLanguageModal}
-          currentLanguageCode={userData.preferredLanguageCode}
-          onSelectLanguage={handleLanguageChange}
-          onClose={() => setShowLanguageModal(false)}
-        />
-      )}
-
-      {currentActivity && (
-        <InteractiveActivityModal
-          activity={currentActivity}
-          onComplete={handleCompleteActivity}
-          onClose={() => setCurrentActivity(null)}
-          userData={userData!}
-        />
-      )}
-
-      {prayerAlert && (
-        <PrayerReminderPopup
-          alert={prayerAlert}
-          onClose={clearPrayerAlert}
-        />
-      )}
-    </div>
   );
-};
+}
 
 const App: React.FC = () => {
-  const [userData, setUserData] = useState<UserData | null>(() => 
-    safeLoadFromLocalStorage<UserData | null>(USER_DATA_KEY, null)
-  );
+  const [userData, setUserData] = useState<UserData | null>(() => safeLoadFromLocalStorage<UserData | null>(USER_DATA_KEY, null));
   const [isInitializingChat, setIsInitializingChat] = useState<boolean>(true);
 
   const handleUserDataSubmit = (data: { age: string; location: string; preferredLanguageCode: string; hikmahPoints: number }) => {
@@ -1127,16 +971,20 @@ const App: React.FC = () => {
     safeSaveToLocalStorage(USER_DATA_KEY, fullUserData);
     setUserData(fullUserData);
   };
-
+  
   useEffect(() => {
-    // Initialize chat service
+    // Vite uses import.meta.env for environment variables.
+    // The main chat proxy doesn't need the key on the frontend anymore,
+    // but direct calls (like for activities) still do.
     geminiService.initializeChat()
       .catch(err => console.error("Initial chat service connection failed:", err))
       .finally(() => setIsInitializingChat(false));
+
   }, []);
 
+
   return (
-    <PrayerTimesProvider userData={userData}>
+    <PrayerTimesProvider>
       <AppContent 
         userData={userData}
         setUserData={setUserData}
