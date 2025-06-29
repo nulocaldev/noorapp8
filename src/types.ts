@@ -25,6 +25,7 @@ export interface ChatMessage {
   id: string;
   content: string;
   role: 'user' | 'assistant';
+  sender?: MessageSender; // Alternative property for compatibility
   timestamp: string;
   metadata?: {
     suggestions?: string[];
@@ -227,6 +228,7 @@ export interface ApprovedSponsor {
   detectedLon?: number;
   status: 'approved';
   startDate: string;
+  duration?: number; // Duration in days (alternative property name)
   durationDays: number;
   endDate: string;
   clickCount: number;
@@ -253,6 +255,7 @@ export interface BrandingAssets {
   cost: number;
   type: 'logo' | 'watermark' | 'border';
   imageUrl: string;
+  formLogo?: string;
   tier: 'Common' | 'Uncommon' | 'Rare' | 'Epic' | 'Legendary';
   description: string;
   limit: number | null;
@@ -264,6 +267,7 @@ export interface CardBackgroundPack {
   name: string;
   cost: number;
   backgrounds: string[]; // Array of CardBackground IDs
+  backgroundIds?: string[]; // Alternative property name for compatibility
   tier: 'Common' | 'Uncommon' | 'Rare' | 'Epic' | 'Legendary';
   description: string;
   limit: number | null;
@@ -401,4 +405,246 @@ export interface UserAnalytics {
     language: string;
     timezone: string;
   };
+}
+
+// Additional types needed by App.tsx
+export interface UserData {
+  id: string;
+  name: string;
+  email: string;
+  age?: number;
+  location?: {
+    latitude: number;
+    longitude: number;
+    city?: string;
+    country?: string;
+  };
+  preferredLanguage: string;
+  preferredLanguageCode?: string;
+  preferredLanguageName?: string;
+  hikmahPoints?: number;
+  preferences: {
+    notifications: boolean;
+    prayerReminders: boolean;
+    theme: 'light' | 'dark' | 'auto';
+    fontSize: 'small' | 'medium' | 'large';
+  };
+  createdAt: string;
+  lastActiveAt: string;
+}
+
+export type MessageSender = 'user' | 'assistant';
+
+export interface SponsorLink {
+  id: string;
+  companyName: string;
+  linkType: 'visit' | 'call' | 'email';
+  linkUrl: string;
+  businessCategory: string;
+  tier: SponsorTier;
+}
+
+export interface ManagedUrlConfig {
+  id: string;
+  name: string;
+  url: string;
+  isActive: boolean;
+  priority: number;
+}
+
+export interface ChatSession {
+  id: string;
+  title: string;
+  name?: string;
+  messages: ChatMessage[];
+  createdAt: string;
+  updatedAt: string;
+  lastActivityAt?: string;
+  isActive: boolean;
+}
+
+export interface UnlockedWisdomCard {
+  id: string;
+  title: string;
+  content: string;
+  category: string;
+  backgroundId?: string;
+  unlockedAt: string;
+}
+
+export interface InteractiveActivitySuggestion {
+  type: 'quiz' | 'khitmah_reader' | 'flip_book_reader' | 'word_search' | 'hadith_explorer';
+  topic: string;
+  description: string;
+  data?: any;
+}
+
+export interface QuizData {
+  id: string;
+  title: string;
+  questions: QuizQuestion[];
+  category: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+}
+
+export interface UnlockedAchievementCard {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  points: number;
+  unlockedAt: string;
+  category: string;
+}
+
+export interface InlineQuizState {
+  isActive: boolean;
+  currentQuestion: number;
+  currentQuestionIndex?: number;
+  questions: QuizQuestion[];
+  answers: number[];
+  userAnswers?: number[];
+  score: number;
+  isCompleted?: boolean;
+}
+
+export interface ReflectionCard {
+  id: string;
+  title: string;
+  content: string;
+  prompt?: string;
+  date: string;
+  category: string;
+  tags: string[];
+}
+
+export interface KhitmahProgress {
+  currentSurah: number;
+  currentVerse: number;
+  currentPage?: number;
+  totalVersesRead: number;
+  totalPagesRead?: number;
+  startDate: string;
+  startedAt?: string;
+  targetDate?: string;
+  dailyGoal: number;
+  lastReadAt?: string;
+}
+
+export interface InlineKhitmahReaderState {
+  isActive: boolean;
+  currentSurah: number;
+  currentVerse: number;
+  verses: QuranVerse[];
+}
+
+export interface WordSearchData {
+  id: string;
+  title: string;
+  grid: string[][];
+  words: string[];
+  category: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+}
+
+export interface InlineWordSearchState {
+  isActive: boolean;
+  grid: string[][];
+  words: { word: string; found: boolean; positions?: { row: number; col: number }[] }[];
+  selectedCells: { row: number; col: number }[];
+  foundWords?: string[];
+  score?: number;
+  isCompleted?: boolean;
+}
+
+export interface FlipBookData {
+  id: string;
+  title: string;
+  description: string;
+  pages: FlipBookPage[];
+  category: string;
+  ageGroup: string;
+}
+
+export interface InlineFlipBookState {
+  isActive: boolean;
+  currentPage: number;
+  currentPageIndex?: number;
+  book: FlipBook;
+  isCompleted?: boolean;
+}
+
+export interface InlineHadithExplorerState {
+  isActive: boolean;
+  currentHadith: number;
+  hadiths: Hadith[];
+  bookmarks: string[];
+}
+
+export interface HadithProgress {
+  totalRead: number;
+  bookmarked: number;
+  categories: Record<string, number>;
+  lastReadDate: string;
+  currentCollection?: string;
+  currentHadithIndex?: number;
+  totalHadithsRead?: number;
+  startedAt?: string;
+  lastReadAt?: string;
+}
+
+export interface AppSkin {
+  id: string;
+  name: string;
+  colors: ThemeColors;
+  backgroundImage?: string;
+  isUnlocked: boolean;
+}
+
+export interface ThemeOverrides {
+  primaryColor?: string;
+  secondaryColor?: string;
+  backgroundColor?: string;
+  textColor?: string;
+}
+
+export interface BehaviorOverrides {
+  autoSave: boolean;
+  notifications: boolean;
+  animations: boolean;
+  soundEffects: boolean;
+  pointsPerAiMessage?: number;
+  pointsPerActivityCompletedBase?: number;
+  pointsPerQuizCorrectAnswer?: number;
+  pointsPerWordFound?: number;
+  pointsPerReflectionGenerated?: number;
+  pointsPerKhitmahPageRead?: number;
+  pointsPerFlipbookPageTurned?: number;
+  pointsPerHadithRead?: number;
+}
+
+export interface BookmarkedHadith {
+  id?: string;
+  hadithId: string;
+  hadith: Hadith;
+  bookmarkedAt: string;
+  notes?: string;
+}
+
+export interface BookmarkedAyah {
+  id?: string;
+  surah: number;
+  verse: number;
+  ayah: QuranVerse;
+  bookmarkedAt: string;
+  notes?: string;
+}
+
+export interface AyahWithTranslation {
+  surah: number;
+  verse: number;
+  arabic: string;
+  translation: string;
+  transliteration?: string;
+  surahName: string;
 }

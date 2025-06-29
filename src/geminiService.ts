@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/genai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Types for Gemini API
 interface GeminiConfig {
@@ -246,6 +246,40 @@ IMPORTANT INSTRUCTIONS:
       return "May Allah guide us and grant us peace in our hearts today.";
     }
   }
+
+  public async generateReflection(topic?: string, language: string = 'en'): Promise<string> {
+    if (!this.isReady()) {
+      return "Reflect on Allah's mercy and guidance in your daily life.";
+    }
+
+    try {
+      const topicPrompt = topic ? ` about ${topic}` : '';
+      const prompt = `Generate a thoughtful Islamic reflection${topicPrompt} in ${language}. 
+      Keep it meaningful and under 150 words, focusing on spiritual growth and Islamic values.`;
+
+      const result = await this.model.generateContent(prompt);
+      const response = await result.response;
+      return response.text().trim();
+    } catch (error) {
+      console.error('Error generating reflection:', error);
+      return "May Allah grant us wisdom and understanding in all our endeavors.";
+    }
+  }
+
+  public async initializeChat(context?: ChatContext): Promise<void> {
+    try {
+      await this.initialize();
+      if (context) {
+        // Store context for future use
+        this.currentContext = context;
+      }
+    } catch (error) {
+      console.error('Error initializing chat:', error);
+      throw error;
+    }
+  }
+
+  private currentContext?: ChatContext;
 }
 
 // Export singleton instance

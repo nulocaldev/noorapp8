@@ -28,20 +28,21 @@ import { isLocationMatch } from './utils/locationUtils';
 import { calculateEndDate, isSponsorshipActive, formatDateForDisplay } from './utils/dateUtils';
 import { PrayerTimesProvider } from './contexts/PrayerTimesContext';
 
-import UserDataForm from './components/UserDataForm';
-import ChatInterface from './components/ChatInterface';
-import NavigationBar, { AppView } from './components/NavigationBar';
-import SponsorApplicationForm from './components/SponsorApplicationForm';
-import AdminDashboard from './components/AdminDashboard';
-import AdminLogin from './components/AdminLogin';
-import ChatListSidebar from './components/ChatListSidebar';
-import LanguageSelectionModal from './components/LanguageSelectionModal';
-import HikmahGallery from './components/HikmahGallery';
+import UserDataForm from './components/forms/UserDataForm';
+import ChatInterface from './components/interfaces/ChatInterface';
+import NavigationBar from './components/navigation/NavigationBar';
+import SponsorApplicationForm from './components/forms/SponsorApplicationForm';
+import AdminDashboard from './components/admin/AdminDashboard';
+import AdminLogin from './components/admin/AdminLogin';
+import ChatListSidebar from './components/navigation/ChatListSidebar';
+import LanguageSelectionModal from './components/modals/LanguageSelectionModal';
+import HikmahGallery from './components/galleries/HikmahGallery';
 // import InteractiveActivityModal from './components/InteractiveActivityModal';
 // import PrayerReminderPopup from './components/PrayerReminderPopup';
-import SplashScreen from './components/SplashScreen';
+import SplashScreen from './components/screens/SplashScreen';
 
 export type Theme = 'light' | 'dark' | 'auto';
+export type AppView = 'chat' | 'hikmah' | 'sponsor' | 'admin' | 'settings';
 
 // Helper to safely save to localStorage and handle quota errors
 const safeSaveToLocalStorage = (key: string, data: any): boolean => {
@@ -78,6 +79,10 @@ const safeLoadFromLocalStorage = <T,>(key: string, fallback: T): T => {
 };
 
 const DEFAULT_BEHAVIORS: BehaviorOverrides = {
+    autoSave: true,
+    notifications: true,
+    animations: true,
+    soundEffects: true,
     pointsPerAiMessage: POINTS_PER_AI_MESSAGE,
     pointsPerActivityCompletedBase: POINTS_PER_ACTIVITY_COMPLETED_BASE,
     pointsPerQuizCorrectAnswer: POINTS_PER_QUIZ_CORRECT_ANSWER,
